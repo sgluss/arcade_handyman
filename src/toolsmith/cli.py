@@ -2,21 +2,25 @@
 
     toolsmith generate <openapi-url-or-path>            # spec-first ingest
     toolsmith generate <docs-url> --docs --base-url ... # docs-page ingest
+    toolsmith demo <server-name> [--task "..."]         # use the generated tools
 
-One run is: ingest -> design -> generate -> verify, with verify failures fed
-back into design for a bounded number of revision attempts. The loop is the
-product decision at the heart of the project: a generated server is not
-"done" when it renders — it is done when a fresh model, shown only the served
-tools, uses them correctly. If the loop cannot converge, the server is still
-emitted but loudly marked, with the failing cases written next to the code.
+One generate run is: ingest -> design -> generate -> verify, with verify
+failures fed back into design for a bounded number of revision attempts. The
+loop is the product decision at the heart of the project: a generated server
+is not "done" when it renders — it is done when a fresh model, shown only the
+served tools, uses them correctly. If the loop cannot converge, the server is
+still emitted but loudly marked, with the failing cases written next to the
+code.
 """
 
 import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
+from toolsmith.agent import run_agent
 from toolsmith.design import design_toolplan
 from toolsmith.generate import GenerationError, generate_artifacts
 from toolsmith.ingest import spec_from_docs, spec_from_openapi
@@ -28,6 +32,44 @@ def main() -> None:
     args = _parse_args()
     if args.command == "generate":
         run_pipeline(args)
+    elif args.command == "demo":
+        run_demo(args)
+
+
+def run_demo(args: argparse.Namespace) -> None:
+    server_path = Path(args.server)
+    if server_path.suffix != ".py":
+        server_path = Path("generated") / args.server / "server.py"
+    if not server_path.exists():
+        sys.exit(f"no server at {server_path} — run `toolsmith generate` first")
+    task = args.task or _default_task(server_path.parent.name)
+
+    _stage("DEMO", str(server_path))
+    _say(f"task: {task}")
+    answer = asyncio.run(run_agent(server_path, task))
+    print(f"\n{answer}\n")
+
+
+def _default_task(server_name: str) -> str:
+    """Canned demo tasks for the two servers this take-home ships; anything
+    else needs an explicit --task."""
+    home = f"latitude {os.environ.get('HOME_LAT', '47.6062')}, " \
+           f"longitude {os.environ.get('HOME_LON', '-122.3321')}"
+    defaults = {
+        "nws": (
+            f"I'm planning a bike ride on Saturday morning near home ({home}). "
+            "Will the weather cooperate, and are there any active weather alerts "
+            "I should worry about?"
+        ),
+        "hackernews": (
+            "Give me a morning digest of Hacker News right now: pick the 3-4 "
+            "stories most worth my time as an AI infrastructure engineer, with "
+            "one line each on why, including points and comment counts."
+        ),
+    }
+    if server_name not in defaults:
+        sys.exit(f"no default task for '{server_name}'; pass --task")
+    return defaults[server_name]
 
 
 def run_pipeline(args: argparse.Namespace) -> Path:
@@ -133,6 +175,10 @@ def _parse_args() -> argparse.Namespace:
                           help="Design attempts before emitting with a warning (default: 3)")
     generate.add_argument("--skip-evals", action="store_true",
                           help="Skip the eval gate (static checks still run)")
+
+    demo = commands.add_parser("demo", help="Run the consumer agent against a generated server")
+    demo.add_argument("server", help="Server name under generated/, or a path to a server.py")
+    demo.add_argument("--task", help="What to ask (defaults exist for nws and hackernews)")
     return parser.parse_args()
 
 
