@@ -11,6 +11,9 @@ dependencies = [
     "jinja2>=3.1",
     "pydantic>=2.7",
     "pyyaml>=6.0",
+    "arcade-mcp[evals]>=1.15.2",
+    # runtime dependency: the verify stage lints generated servers
+    "ruff>=0.6",
 ]
 
 [project.scripts]

@@ -71,7 +71,9 @@ def test_generated_server_boots_and_lists_tools(fixture_plan, fixture_spec, tmp_
     by_name = {tool.name: tool for tool in tools}
 
     assert set(by_name) == {"Fixture_GetStationData", "Fixture_GetDataForPoint"}
-    schema = by_name["Fixture_GetStationData"].input_schema
+    # the mcp SDK has renamed this field across versions; accept either spelling
+    tool = by_name["Fixture_GetStationData"]
+    schema = getattr(tool, "inputSchema", None) or tool.input_schema
     assert schema["required"] == ["station"]
     assert schema["properties"]["units"]["description"] == "'us' or 'si'"
     # The context parameter is server plumbing, invisible to consuming agents.
