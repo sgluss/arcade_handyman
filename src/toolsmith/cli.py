@@ -20,6 +20,8 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from toolsmith.agent import run_agent
 from toolsmith.design import design_toolplan
 from toolsmith.generate import GenerationError, generate_artifacts
@@ -29,6 +31,7 @@ from toolsmith.verify import author_eval_suite, boot_check, run_eval_suite, stat
 
 
 def main() -> None:
+    load_dotenv()  # ANTHROPIC_API_KEY, NWS_USER_AGENT, HOME_LAT/LON from ./.env
     args = _parse_args()
     if args.command == "generate":
         run_pipeline(args)
