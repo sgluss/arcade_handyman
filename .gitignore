@@ -5,3 +5,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+
+# local working docs for session continuity (not part of the submission)
+PLAN.md
+CLAUDE.md
