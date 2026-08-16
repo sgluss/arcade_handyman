@@ -169,3 +169,65 @@ Decisions and results:
    sessions carry a fixed project session name. The repo is unaffected:
    profile ARNs are ordinary model strings in the local env, and reviewer
    defaults stay the short model ids.
+
+## Session 4 — the execution-smoke gate
+
+**Prompt (paraphrased):** "Go/no-go on the execution-smoke gate stage?" —
+go. Call every generated tool once against the live API, with arguments
+taken from the examiner's own cases (retyped to the declared schema exactly
+as the eval runner types them), after cases are authored and before
+selection is scored. Failures feed the same design-revision loop, and smoke
+outcomes ship in the evals.json evidence.
+
+**The first replay earned the stage its place.** Run standalone against the
+committed servers (no LLM, live APIs only), smoke failed 3 of 7 NWS tools —
+on the exact server that had passed selection 14/14. Three distinct causes,
+each a finding:
+
+1. **A latent chain bug.** The design had extracted `observationStations.0`
+   from station discovery, but the template's strict dot-path walker only
+   knew dict keys — and the value at that path is a full station *URL*
+   besides. The right extract (`features.0.properties.stationIdentifier`)
+   needs list indexing, so the walker (and its lenient pruning sibling)
+   learned numeric segments, and the IR's field docs now advertise them.
+2. **Masked errors.** arcade-mcp reports an unhandled exception as
+   "An unhandled RuntimeError was raised by the tool" — the template's
+   carefully readable HTTP error text never reached any calling agent.
+   Generated servers now raise Arcade's typed taxonomy (UpstreamError with
+   the status, NetworkTransportError, FatalToolError), which surfaces the
+   message *and* a machine-readable error kind in response metadata.
+3. **Fabricated identifiers.** The examiner is blind to the API by design,
+   so its cases for opaque-ID lookups invent ids that can only draw 404s —
+   or, for NWS product ids, 500s. Hence the tolerance rule: a single-call
+   tool that gets an HTTP error *answer* counts as wired (the request
+   formed, sent, and parsed); chains get no tolerance past live data, and
+   auth errors always fail. Tolerated calls are recorded as such in the
+   evidence.
+
+**Regeneration under the four-stage gate then showed the whole loop.** NWS
+attempt 1: smoke 6/6 — including the once-broken station chain at the same
+coordinates, with the design choosing the list-indexed extract unprompted —
+then one selection case failed and fed a revision; attempt 2 converged 5
+tools, smoke 5/5, selection 12/12. Hacker News passed first attempt, smoke
+8/8 and selection 17/17, the examiner grounding its item lookup in the docs'
+real example id. Both demos then ran cleanly against the fresh servers.
+
+Ride-alongs the session forced: recorded regeneration commands for docs
+ingests keep their `--docs --base-url` flags (the printed command now
+actually runs), and the demo's canned tasks look up by name *aliases* —
+the design stage renamed both servers across regenerations (nws →
+weather_gov, hacker_news → hackernews), which is its right.
+
+**Bonus find, courtesy of the visible usage line:** both fresh demos
+printed `0 cached` where an earlier run had reported roughly half its input
+served from cache. An A/B probe (a two-request agent conversation printing
+per-request usage) pinned it: with identical cache flags, the bare Bedrock
+model id wrote 1,689 tokens to cache on request one and read them back on
+request two, while the Project-tagged *application inference profile* ARN
+produced zeros — Bedrock silently ignores cache markers through application
+profiles. Nothing in the docs says so; it had to be measured. So the
+per-project cost-attribution mechanism quietly disables the cost-
+optimization mechanism. At this project's scale attribution wins and the
+profiles stay, but the tension goes straight into the feature pitch: a
+tool platform should give per-toolkit cost attribution without making you
+give up caching.

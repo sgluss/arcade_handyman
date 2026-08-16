@@ -1,0 +1,319 @@
+{
+  "cases": [
+    {
+      "user_message": "Is there any severe weather being reported anywhere in Texas right now?",
+      "expected_tool": "get_active_alerts",
+      "expected_args": [
+        {
+          "name": "area",
+          "value": "TX",
+          "match": "exact"
+        },
+        {
+          "name": "severity",
+          "value": "Severe",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "I'm at 36.1699,-115.1398 in Las Vegas \u2014 any active weather alerts or warnings for my area?",
+      "expected_tool": "get_active_alerts",
+      "expected_args": [
+        {
+          "name": "point",
+          "value": "36.1699,-115.1398",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "Can you pull up the full text of the alert with ID urn:oid:2.49.0.1.840.0.123456.1.1 that I saw earlier?",
+      "expected_tool": "get_alert_details",
+      "expected_args": [
+        {
+          "name": "alert_id",
+          "value": "urn:oid:2.49.0.1.840.0.123456.1.1",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "I need the complete details for alert ID NWS-IDP-PROD-1234567-1234567, please.",
+      "expected_tool": "get_alert_details",
+      "expected_args": [
+        {
+          "name": "alert_id",
+          "value": "NWS-IDP-PROD-1234567-1234567",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "What's the weather forecast for the next few days in Chicago, coordinates 41.8781,-87.6298?",
+      "expected_tool": "get_forecast",
+      "expected_args": [
+        {
+          "name": "latitude",
+          "value": "41.8781",
+          "match": "exact"
+        },
+        {
+          "name": "longitude",
+          "value": "-87.6298",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "Can you give me the extended forecast in metric units for Denver, at 39.7392,-104.9903?",
+      "expected_tool": "get_forecast",
+      "expected_args": [
+        {
+          "name": "latitude",
+          "value": "39.7392",
+          "match": "exact"
+        },
+        {
+          "name": "longitude",
+          "value": "-104.9903",
+          "match": "exact"
+        },
+        {
+          "name": "units",
+          "value": "si",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "Will it rain this afternoon in Seattle? I'm at 47.6062,-122.3321.",
+      "expected_tool": "get_hourly_forecast",
+      "expected_args": [
+        {
+          "name": "latitude",
+          "value": "47.6062",
+          "match": "exact"
+        },
+        {
+          "name": "longitude",
+          "value": "-122.3321",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "Give me an hour-by-hour breakdown for tomorrow at 34.0522,-118.2437 in Los Angeles.",
+      "expected_tool": "get_hourly_forecast",
+      "expected_args": [
+        {
+          "name": "latitude",
+          "value": "34.0522",
+          "match": "exact"
+        },
+        {
+          "name": "longitude",
+          "value": "-118.2437",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "What's the temperature right now at 40.7128,-74.0060?",
+      "expected_tool": "get_current_conditions",
+      "expected_args": [
+        {
+          "name": "latitude",
+          "value": "40.7128",
+          "match": "exact"
+        },
+        {
+          "name": "longitude",
+          "value": "-74.0060",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "How's the weather right now near 29.7604,-95.3698 in Houston?",
+      "expected_tool": "get_current_conditions",
+      "expected_args": [
+        {
+          "name": "latitude",
+          "value": "29.7604",
+          "match": "exact"
+        },
+        {
+          "name": "longitude",
+          "value": "-95.3698",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "Are there any tornado warnings currently in effect for Oklahoma City, at 35.4676,-97.5164?",
+      "expected_tool": "get_active_alerts",
+      "expected_args": [
+        {
+          "name": "point",
+          "value": "35.4676,-97.5164",
+          "match": "exact"
+        },
+        {
+          "name": "event",
+          "value": "Tornado Warning",
+          "match": "similar"
+        }
+      ]
+    },
+    {
+      "user_message": "Over the next five days, what's the general weather outlook going to look like in Miami, at 25.7617,-80.1918?",
+      "expected_tool": "get_forecast",
+      "expected_args": [
+        {
+          "name": "latitude",
+          "value": "25.7617",
+          "match": "exact"
+        },
+        {
+          "name": "longitude",
+          "value": "-80.1918",
+          "match": "exact"
+        }
+      ]
+    }
+  ],
+  "smoke": [
+    {
+      "tool": "get_active_alerts",
+      "args": {
+        "area": "TX",
+        "severity": "Severe"
+      },
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_alert_details",
+      "args": {
+        "alert_id": "urn:oid:2.49.0.1.840.0.123456.1.1"
+      },
+      "ok": true,
+      "detail": "tolerated UPSTREAM_RUNTIME_NOT_FOUND \u2014 single-call lookup, wiring proven by the API's answer to fabricated case input: [UPSTREAM_RUNTIME_NOT_FOUND] UpstreamError during execution of tool 'get_alert_details': GET /alerts/urn:oid:2.49.0.1.840.0.123456.1.1 failed (404): {\n    \"correlationId\": \"38520a85\",\n    \"title\": \"Al"
+    },
+    {
+      "tool": "get_forecast",
+      "args": {
+        "latitude": 41.8781,
+        "longitude": -87.6298
+      },
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_hourly_forecast",
+      "args": {
+        "latitude": 47.6062,
+        "longitude": -122.3321
+      },
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_current_conditions",
+      "args": {
+        "latitude": 40.7128,
+        "longitude": -74.006
+      },
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "outcomes": [
+    {
+      "name": "Is there any severe weather being reported anywhere in Texas",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "I'm at 36.1699,-115.1398 in Las Vegas \u2014 any active weather a",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Can you pull up the full text of the alert with ID urn:oid:2",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "I need the complete details for alert ID NWS-IDP-PROD-123456",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "What's the weather forecast for the next few days in Chicago",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Can you give me the extended forecast in metric units for De",
+      "passed": true,
+      "warning": false,
+      "score": 1.0000000000000002,
+      "detail": ""
+    },
+    {
+      "name": "Will it rain this afternoon in Seattle? I'm at 47.6062,-122.",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Give me an hour-by-hour breakdown for tomorrow at 34.0522,-1",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "What's the temperature right now at 40.7128,-74.0060?",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "How's the weather right now near 29.7604,-95.3698 in Houston",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Are there any tornado warnings currently in effect for Oklah",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Over the next five days, what's the general weather outlook ",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    }
+  ],
+  "summary": "12/12 passed, 0 warnings, 0 failed"
+}

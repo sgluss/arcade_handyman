@@ -1,0 +1,586 @@
+{
+  "server_name": "weather_gov",
+  "display_name": "Weather.gov (NWS)",
+  "instructions": "Tools for US weather data from the National Weather Service (weather.gov). Use get_active_alerts for current alerts/watches/warnings/advisories (including severe weather) covering a point or area. Use get_forecast/get_hourly_forecast for future conditions at a location. Use get_current_conditions for the latest observed conditions near a point. Use get_alert_details to fetch full text of a specific alert by its ID. All location-based tools accept latitude/longitude and internally resolve the NWS grid/zone/station, so you never need to know NWS internal IDs.",
+  "secrets": [
+    {
+      "env_var": "WEATHER_GOV_USER_AGENT",
+      "param_name": "User-Agent",
+      "location": "header",
+      "required": false,
+      "default": "weather-gov-mcp-server (contact@example.com)",
+      "description": "Identifies this application to the weather.gov API, as required by their usage policy."
+    }
+  ],
+  "tools": [
+    {
+      "name": "get_active_alerts",
+      "description": "Checks for currently active weather alerts, watches, warnings, and advisories (including severe weather, tornadoes, floods, winter storms, etc). Use this whenever a user asks 'are there any weather alerts/warnings' for a location, state, or the whole country — including questions specifically about 'severe weather'. To restrict to only severe-level alerts, pass severity='Severe'; leave severity unset to get alerts of all severities. Do NOT use for future/forecast conditions (use get_forecast instead). Returns a list of active alerts with headline, severity, urgency, certainty, area description, and effective/expiration times.",
+      "args": [
+        {
+          "name": "point",
+          "py_type": "str",
+          "description": "Latitude,longitude of the location to check, e.g. '36.1699,-115.1398'. Omit if using area instead.",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "area",
+          "py_type": "str",
+          "description": "Comma-separated two-letter US state or marine area codes to check instead of a point, e.g. 'NV' or 'NV,CA'.",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "severity",
+          "py_type": "str",
+          "description": "Comma-separated severity levels to filter by: Extreme, Severe, Moderate, Minor, Unknown. Set to 'Severe' when the user asks about 'severe weather'. Omit to include all severities.",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "event",
+          "py_type": "str",
+          "description": "Comma-separated event names to filter by, e.g. 'Tornado Warning,Flood Warning'. Omit to include all event types.",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "urgency",
+          "py_type": "str",
+          "description": "Comma-separated urgency levels to filter by: Immediate, Expected, Future, Past, Unknown. Omit for all.",
+          "required": false,
+          "default": null
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "alerts_active",
+          "bindings": [
+            {
+              "param": "point",
+              "value": "{point}"
+            },
+            {
+              "param": "area",
+              "value": "{area}"
+            },
+            {
+              "param": "severity",
+              "value": "{severity}"
+            },
+            {
+              "param": "event",
+              "value": "{event}"
+            },
+            {
+              "param": "urgency",
+              "value": "{urgency}"
+            }
+          ],
+          "extracts": []
+        }
+      ],
+      "response_extract": "features",
+      "returns": "List of active alert features with properties (headline, severity, urgency, certainty, areaDesc, effective, expires, description, instruction)."
+    },
+    {
+      "name": "get_alert_details",
+      "description": "Fetches the full details of one specific weather alert given its alert ID (as returned in the 'id' field of get_active_alerts results). Use this only when you already have a specific alert ID and need its complete text; do not use it to search for alerts.",
+      "args": [
+        {
+          "name": "alert_id",
+          "py_type": "str",
+          "description": "The full alert identifier/ID string, e.g. 'urn:oid:2.49.0.1.840.0...'.",
+          "required": true,
+          "default": null
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "alerts_single",
+          "bindings": [
+            {
+              "param": "id",
+              "value": "{alert_id}"
+            }
+          ],
+          "extracts": []
+        }
+      ],
+      "response_extract": "properties",
+      "returns": "Full alert object including area description, affected zones, sent/effective/onset/expires times, and instructions."
+    },
+    {
+      "name": "get_forecast",
+      "description": "Gets the multi-day textual weather forecast (e.g. 'Tonight', 'Monday', 'Monday Night') for a US latitude/longitude point. Use this for questions about upcoming weather over the next several days. For hour-by-hour detail, use get_hourly_forecast instead. For active alerts/warnings, use get_active_alerts instead.",
+      "args": [
+        {
+          "name": "latitude",
+          "py_type": "float",
+          "description": "Latitude of the location, decimal degrees.",
+          "required": true,
+          "default": null
+        },
+        {
+          "name": "longitude",
+          "py_type": "float",
+          "description": "Longitude of the location, decimal degrees.",
+          "required": true,
+          "default": null
+        },
+        {
+          "name": "units",
+          "py_type": "str",
+          "description": "Unit system for the forecast text: 'us' for US customary or 'si' for metric. Defaults to 'us'.",
+          "required": false,
+          "default": "\"us\""
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "point",
+          "bindings": [
+            {
+              "param": "latitude",
+              "value": "{latitude}"
+            },
+            {
+              "param": "longitude",
+              "value": "{longitude}"
+            }
+          ],
+          "extracts": [
+            {
+              "name": "wfo",
+              "path": "properties.gridId"
+            },
+            {
+              "name": "grid_x",
+              "path": "properties.gridX"
+            },
+            {
+              "name": "grid_y",
+              "path": "properties.gridY"
+            }
+          ]
+        },
+        {
+          "endpoint_id": "gridpoint_forecast",
+          "bindings": [
+            {
+              "param": "wfo",
+              "value": "{wfo}"
+            },
+            {
+              "param": "x",
+              "value": "{grid_x}"
+            },
+            {
+              "param": "y",
+              "value": "{grid_y}"
+            },
+            {
+              "param": "units",
+              "value": "{units}"
+            }
+          ],
+          "extracts": []
+        }
+      ],
+      "response_extract": "properties.periods",
+      "returns": "List of forecast periods, each with name, temperature, wind, and a short forecast description."
+    },
+    {
+      "name": "get_hourly_forecast",
+      "description": "Gets the hour-by-hour weather forecast for a US latitude/longitude point, covering the next several days in 1-hour increments. Use this when the user wants detailed near-term timing (e.g. 'will it rain this afternoon'). For multi-day summaries use get_forecast instead.",
+      "args": [
+        {
+          "name": "latitude",
+          "py_type": "float",
+          "description": "Latitude of the location, decimal degrees.",
+          "required": true,
+          "default": null
+        },
+        {
+          "name": "longitude",
+          "py_type": "float",
+          "description": "Longitude of the location, decimal degrees.",
+          "required": true,
+          "default": null
+        },
+        {
+          "name": "units",
+          "py_type": "str",
+          "description": "Unit system for the forecast text: 'us' for US customary or 'si' for metric. Defaults to 'us'.",
+          "required": false,
+          "default": "\"us\""
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "point",
+          "bindings": [
+            {
+              "param": "latitude",
+              "value": "{latitude}"
+            },
+            {
+              "param": "longitude",
+              "value": "{longitude}"
+            }
+          ],
+          "extracts": [
+            {
+              "name": "wfo",
+              "path": "properties.gridId"
+            },
+            {
+              "name": "grid_x",
+              "path": "properties.gridX"
+            },
+            {
+              "name": "grid_y",
+              "path": "properties.gridY"
+            }
+          ]
+        },
+        {
+          "endpoint_id": "gridpoint_forecast_hourly",
+          "bindings": [
+            {
+              "param": "wfo",
+              "value": "{wfo}"
+            },
+            {
+              "param": "x",
+              "value": "{grid_x}"
+            },
+            {
+              "param": "y",
+              "value": "{grid_y}"
+            },
+            {
+              "param": "units",
+              "value": "{units}"
+            }
+          ],
+          "extracts": []
+        }
+      ],
+      "response_extract": "properties.periods",
+      "returns": "List of hourly forecast periods, each with start time, temperature, wind, and short forecast description."
+    },
+    {
+      "name": "get_current_conditions",
+      "description": "Gets the most recent observed weather conditions (temperature, wind, humidity, etc) from the nearest weather station to a US latitude/longitude point. Use this for 'what is the weather right now' questions. Do NOT use this for future forecasts (use get_forecast) or for alerts (use get_active_alerts).",
+      "args": [
+        {
+          "name": "latitude",
+          "py_type": "float",
+          "description": "Latitude of the location, decimal degrees.",
+          "required": true,
+          "default": null
+        },
+        {
+          "name": "longitude",
+          "py_type": "float",
+          "description": "Longitude of the location, decimal degrees.",
+          "required": true,
+          "default": null
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "point_stations",
+          "bindings": [
+            {
+              "param": "latitude",
+              "value": "{latitude}"
+            },
+            {
+              "param": "longitude",
+              "value": "{longitude}"
+            }
+          ],
+          "extracts": [
+            {
+              "name": "station_id",
+              "path": "features.0.properties.stationIdentifier"
+            }
+          ]
+        },
+        {
+          "endpoint_id": "station_observation_latest",
+          "bindings": [
+            {
+              "param": "stationId",
+              "value": "{station_id}"
+            }
+          ],
+          "extracts": []
+        }
+      ],
+      "response_extract": "properties",
+      "returns": "Latest observation for the nearest station: temperature, wind speed/direction, humidity, visibility, textDescription, and timestamp."
+    }
+  ],
+  "rejected": [
+    {
+      "endpoint_id": "alerts_query",
+      "reason": "historical/broad alert search is redundant with get_active_alerts for realistic agent queries"
+    },
+    {
+      "endpoint_id": "alerts_active_count",
+      "reason": "aggregate count rarely useful to agents; get_active_alerts covers the need"
+    },
+    {
+      "endpoint_id": "alerts_active_zone",
+      "reason": "redundant with point/area filtering already exposed in get_active_alerts"
+    },
+    {
+      "endpoint_id": "alerts_active_area",
+      "reason": "covered by area argument in get_active_alerts"
+    },
+    {
+      "endpoint_id": "alerts_active_region",
+      "reason": "marine-region alerts too niche for general agent use"
+    },
+    {
+      "endpoint_id": "alerts_types",
+      "reason": "administrative reference list, not a user-facing query"
+    },
+    {
+      "endpoint_id": "gridpoint",
+      "reason": "raw numerical grid data is too low-level; textual forecast endpoints serve agents better"
+    },
+    {
+      "endpoint_id": "gridpoint_stations",
+      "reason": "internal plumbing, superseded by point_stations chain in get_current_conditions"
+    },
+    {
+      "endpoint_id": "point",
+      "reason": "internal lookup only, hidden inside forecast/current-conditions tools"
+    },
+    {
+      "endpoint_id": "point_stations",
+      "reason": "internal lookup only, hidden inside get_current_conditions"
+    },
+    {
+      "endpoint_id": "point_radio",
+      "reason": "niche radio broadcast script, not a typical agent request"
+    },
+    {
+      "endpoint_id": "obs_stations",
+      "reason": "station directory browsing is plumbing, not an agent-facing need"
+    },
+    {
+      "endpoint_id": "obs_station",
+      "reason": "station metadata lookup, too niche standalone"
+    },
+    {
+      "endpoint_id": "station_observation_list",
+      "reason": "historical observation history is niche; latest observation covers common need"
+    },
+    {
+      "endpoint_id": "station_observation_time",
+      "reason": "requires exact timestamp lookup, too niche for agents"
+    },
+    {
+      "endpoint_id": "tafs",
+      "reason": "aviation-specific terminal forecast, niche audience"
+    },
+    {
+      "endpoint_id": "taf",
+      "reason": "aviation-specific single TAF lookup, niche audience"
+    },
+    {
+      "endpoint_id": "sigmetQuery",
+      "reason": "aviation SIGMET data too specialized for general agent use"
+    },
+    {
+      "endpoint_id": "sigmetsByATSU",
+      "reason": "aviation-specific, niche"
+    },
+    {
+      "endpoint_id": "sigmetsByATSUByDate",
+      "reason": "aviation-specific, niche"
+    },
+    {
+      "endpoint_id": "sigmet",
+      "reason": "aviation-specific, niche"
+    },
+    {
+      "endpoint_id": "cwsu",
+      "reason": "aviation center metadata, administrative"
+    },
+    {
+      "endpoint_id": "cwas",
+      "reason": "aviation advisories, niche"
+    },
+    {
+      "endpoint_id": "cwa",
+      "reason": "aviation advisories, niche"
+    },
+    {
+      "endpoint_id": "glossary",
+      "reason": "reference data, not a weather query"
+    },
+    {
+      "endpoint_id": "icons",
+      "reason": "deprecated icon rendering endpoint"
+    },
+    {
+      "endpoint_id": "iconsDualCondition",
+      "reason": "deprecated icon rendering endpoint"
+    },
+    {
+      "endpoint_id": "icons_summary",
+      "reason": "deprecated icon reference list"
+    },
+    {
+      "endpoint_id": "satellite_thumbnails",
+      "reason": "deprecated image service"
+    },
+    {
+      "endpoint_id": "office",
+      "reason": "administrative office metadata, not weather content"
+    },
+    {
+      "endpoint_id": "office_briefing",
+      "reason": "internal office briefing, niche"
+    },
+    {
+      "endpoint_id": "office_briefing_download_latest",
+      "reason": "internal office briefing, niche"
+    },
+    {
+      "endpoint_id": "office_briefing_download",
+      "reason": "internal office briefing, niche"
+    },
+    {
+      "endpoint_id": "office_headline",
+      "reason": "office news headline, niche"
+    },
+    {
+      "endpoint_id": "office_headlines",
+      "reason": "office news headlines, niche"
+    },
+    {
+      "endpoint_id": "office_weatherstory",
+      "reason": "niche office-specific content"
+    },
+    {
+      "endpoint_id": "office_weatherstory_image",
+      "reason": "niche image asset"
+    },
+    {
+      "endpoint_id": "radar_servers",
+      "reason": "administrative radar infrastructure metadata"
+    },
+    {
+      "endpoint_id": "radar_server",
+      "reason": "administrative radar infrastructure metadata"
+    },
+    {
+      "endpoint_id": "radar_spgds",
+      "reason": "administrative radar infrastructure metadata"
+    },
+    {
+      "endpoint_id": "radar_stations",
+      "reason": "radar station directory, niche for agents"
+    },
+    {
+      "endpoint_id": "radar_station",
+      "reason": "radar station metadata, niche"
+    },
+    {
+      "endpoint_id": "radar_station_alarms",
+      "reason": "administrative radar alarms"
+    },
+    {
+      "endpoint_id": "radar_queue",
+      "reason": "administrative radar product queue"
+    },
+    {
+      "endpoint_id": "radar_profiler",
+      "reason": "specialized wind profiler data, niche"
+    },
+    {
+      "endpoint_id": "transmitters",
+      "reason": "NOAA radio transmitter directory, niche"
+    },
+    {
+      "endpoint_id": "transmitter",
+      "reason": "NOAA radio transmitter metadata, niche"
+    },
+    {
+      "endpoint_id": "area_radio",
+      "reason": "radio broadcast script, niche"
+    },
+    {
+      "endpoint_id": "products_query",
+      "reason": "raw text product search too low-level for general agent queries"
+    },
+    {
+      "endpoint_id": "product_locations",
+      "reason": "administrative reference list"
+    },
+    {
+      "endpoint_id": "product_types",
+      "reason": "administrative reference list"
+    },
+    {
+      "endpoint_id": "product",
+      "reason": "requires internal product ID an agent wouldn't have"
+    },
+    {
+      "endpoint_id": "products_type",
+      "reason": "administrative listing by internal type code"
+    },
+    {
+      "endpoint_id": "products_type_locations",
+      "reason": "administrative reference list"
+    },
+    {
+      "endpoint_id": "location_products",
+      "reason": "administrative reference list"
+    },
+    {
+      "endpoint_id": "products_type_location",
+      "reason": "requires internal type/location codes, too plumbing-heavy"
+    },
+    {
+      "endpoint_id": "latest_product_type_location",
+      "reason": "requires internal type/location codes, too plumbing-heavy"
+    },
+    {
+      "endpoint_id": "zone_list",
+      "reason": "administrative zone directory, plumbing"
+    },
+    {
+      "endpoint_id": "zone_list_type",
+      "reason": "administrative zone directory, plumbing"
+    },
+    {
+      "endpoint_id": "zone",
+      "reason": "internal zone metadata, plumbing"
+    },
+    {
+      "endpoint_id": "zone_forecast",
+      "reason": "redundant with point-based get_forecast which agents can use directly"
+    },
+    {
+      "endpoint_id": "transmitter_zone",
+      "reason": "niche radio transmitter lookup"
+    },
+    {
+      "endpoint_id": "zone_obs",
+      "reason": "redundant with get_current_conditions; requires internal zone ID"
+    },
+    {
+      "endpoint_id": "zone_stations",
+      "reason": "internal plumbing to find stations, already hidden in get_current_conditions"
+    }
+  ]
+}

@@ -75,23 +75,29 @@ def run_demo(args: argparse.Namespace) -> None:
 
 
 def _default_task(server_name: str) -> str:
-    """Canned demo tasks for the two servers this take-home ships; anything
-    else needs an explicit --task. Lookup ignores naming style, since the
-    design stage chooses the server's name (hacker_news, hackernews, ...)."""
+    """Canned demo tasks for the two APIs this take-home ships; anything
+    else needs an explicit --task. The design stage chooses the server's
+    name and picks different ones across runs (nws, weather_gov,
+    hacker_news, ...), so lookup ignores naming style and knows aliases."""
     server_name = re.sub(r"[^a-z0-9]", "", server_name.lower())
     home = f"latitude {os.environ.get('HOME_LAT', '47.6062')}, " \
            f"longitude {os.environ.get('HOME_LON', '-122.3321')}"
+    weather_task = (
+        f"I'm planning a bike ride on Saturday morning near home ({home}). "
+        "Will the weather cooperate, and are there any active weather alerts "
+        "I should worry about?"
+    )
+    hn_task = (
+        "Give me a morning digest of Hacker News right now: pick the 3-4 "
+        "stories most worth my time as an AI infrastructure engineer, with "
+        "one line each on why, including points and comment counts."
+    )
     defaults = {
-        "nws": (
-            f"I'm planning a bike ride on Saturday morning near home ({home}). "
-            "Will the weather cooperate, and are there any active weather alerts "
-            "I should worry about?"
-        ),
-        "hackernews": (
-            "Give me a morning digest of Hacker News right now: pick the 3-4 "
-            "stories most worth my time as an AI infrastructure engineer, with "
-            "one line each on why, including points and comment counts."
-        ),
+        "nws": weather_task,
+        "weathergov": weather_task,
+        "nationalweatherservice": weather_task,
+        "hackernews": hn_task,
+        "hn": hn_task,
     }
     if server_name not in defaults:
         sys.exit(f"no default task for '{server_name}'; pass --task")

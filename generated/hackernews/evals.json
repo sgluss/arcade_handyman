@@ -1,0 +1,289 @@
+{
+  "cases": [
+    {
+      "user_message": "Can you pull up the full details for Hacker News item 8863?",
+      "expected_tool": "get_item",
+      "expected_args": [
+        {
+          "name": "id",
+          "value": "8863",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "I have a comment id, 2921983, from a story's kids list \u2014 what does it say and who posted it?",
+      "expected_tool": "get_item",
+      "expected_args": [
+        {
+          "name": "id",
+          "value": "2921983",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "What's the karma and bio for the Hacker News user 'pg'?",
+      "expected_tool": "get_user",
+      "expected_args": [
+        {
+          "name": "username",
+          "value": "pg",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "Can you look up when the account 'dang' was created and what they've submitted?",
+      "expected_tool": "get_user",
+      "expected_args": [
+        {
+          "name": "username",
+          "value": "dang",
+          "match": "exact"
+        }
+      ]
+    },
+    {
+      "user_message": "What's currently on the Hacker News front page right now?",
+      "expected_tool": "get_top_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "Can you tell me what's trending on HN at the moment?",
+      "expected_tool": "get_top_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "What are the most recently submitted stories on Hacker News, newest first?",
+      "expected_tool": "get_new_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "Show me whatever just got posted to Hacker News a few minutes ago, regardless of popularity.",
+      "expected_tool": "get_new_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "I want the highest-scoring recent stories on HN, not just whatever's currently ranked on the front page.",
+      "expected_tool": "get_best_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "Give me Hacker News' quality-ranked list of best stories lately.",
+      "expected_tool": "get_best_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "What are people discussing in recent Ask HN threads?",
+      "expected_tool": "get_ask_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "Show me the latest 'Ask HN' questions posed to the community.",
+      "expected_tool": "get_ask_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "What projects have people recently shown off in Show HN posts?",
+      "expected_tool": "get_show_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "List the newest Show HN submissions so I can see what people built.",
+      "expected_tool": "get_show_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "Are there any job postings currently listed on Hacker News?",
+      "expected_tool": "get_job_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "Show me the latest hiring listings posted on HN.",
+      "expected_tool": "get_job_stories",
+      "expected_args": []
+    },
+    {
+      "user_message": "I don't want just the newest posts \u2014 give me HN's highest quality content right now based on recent score.",
+      "expected_tool": "get_best_stories",
+      "expected_args": []
+    }
+  ],
+  "smoke": [
+    {
+      "tool": "get_item",
+      "args": {
+        "id": 8863
+      },
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_user",
+      "args": {
+        "username": "pg"
+      },
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_top_stories",
+      "args": {},
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_new_stories",
+      "args": {},
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_best_stories",
+      "args": {},
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_ask_stories",
+      "args": {},
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_show_stories",
+      "args": {},
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "tool": "get_job_stories",
+      "args": {},
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "outcomes": [
+    {
+      "name": "Can you pull up the full details for Hacker News item 8863?",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "I have a comment id, 2921983, from a story's kids list \u2014 wha",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "What's the karma and bio for the Hacker News user 'pg'?",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Can you look up when the account 'dang' was created and what",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "What's currently on the Hacker News front page right now?",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Can you tell me what's trending on HN at the moment?",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "What are the most recently submitted stories on Hacker News,",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Show me whatever just got posted to Hacker News a few minute",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "I want the highest-scoring recent stories on HN, not just wh",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Give me Hacker News' quality-ranked list of best stories lat",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "What are people discussing in recent Ask HN threads?",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Show me the latest 'Ask HN' questions posed to the community",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "What projects have people recently shown off in Show HN post",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "List the newest Show HN submissions so I can see what people",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Are there any job postings currently listed on Hacker News?",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "Show me the latest hiring listings posted on HN.",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    },
+    {
+      "name": "I don't want just the newest posts \u2014 give me HN's highest qu",
+      "passed": true,
+      "warning": false,
+      "score": 1.0,
+      "detail": ""
+    }
+  ],
+  "summary": "17/17 passed, 0 warnings, 0 failed"
+}
