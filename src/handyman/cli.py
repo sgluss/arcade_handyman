@@ -29,7 +29,14 @@ from handyman.design import design_toolplan
 from handyman.generate import GenerationError, generate_artifacts
 from handyman.ingest import spec_from_docs, spec_from_openapi
 from handyman.ir import APISpec, ToolPlan
-from handyman.verify import author_eval_suite, boot_check, run_eval_suite, static_check
+from handyman.verify import (
+    author_eval_suite,
+    boot_check,
+    run_eval_suite,
+    smoke_check,
+    smoke_feedback,
+    static_check,
+)
 
 
 def main() -> None:
@@ -105,8 +112,11 @@ def run_pipeline(args: argparse.Namespace) -> Path:
 
         _stage("GENERATE", plan.server_name)
         out_dir = Path(args.out) / plan.server_name
+        regen_arg = args.source + (f" --docs --base-url {args.base_url}" if args.docs else "")
         try:
-            server_path = generate_artifacts(plan, spec, out_dir, source=args.source)
+            server_path = generate_artifacts(
+                plan, spec, out_dir, source=args.source, source_arg=regen_arg
+            )
         except GenerationError as error:
             feedback = f"The plan failed deterministic validation: {error}"
             _say(f"✗ {feedback}")
@@ -126,9 +136,24 @@ def run_pipeline(args: argparse.Namespace) -> Path:
 
         _stage("VERIFY", "authoring eval cases from the consumer surface")
         suite = author_eval_suite(plan)
-        _say(f"{len(suite.cases)} cases; scoring tool selection against the live server")
+        _say(f"{len(suite.cases)} cases authored")
+
+        _stage("VERIFY", "smoke: every tool executes once against the live API")
+        smoke = smoke_check(suite, plan, server_path)
+        for outcome in smoke:
+            problem = "" if outcome.ok else f" — {outcome.detail[:120]}"
+            _say(f"  {'✓' if outcome.ok else '✗'} {outcome.tool}({_args_line(outcome.args)}){problem}")
+        if any(not outcome.ok for outcome in smoke):
+            _write_eval_artifacts(out_dir, suite, smoke, report=None)
+            feedback = (
+                "Generated tools failed live execution smoke-testing:\n\n" + smoke_feedback(smoke)
+            )
+            _say("✗ execution smoke failed; revising the design")
+            continue
+
+        _stage("VERIFY", "evals: scoring tool selection against the live server")
         report = asyncio.run(run_eval_suite(suite, plan, server_path))
-        _write_eval_artifacts(out_dir, suite, report)
+        _write_eval_artifacts(out_dir, suite, smoke, report)
         for outcome in report.outcomes:
             mark = "✓" if outcome.passed else ("~" if outcome.warning else "✗")
             _say(f"  {mark} [{outcome.score:.2f}] {outcome.name}")
@@ -164,19 +189,27 @@ def _describe_plan(plan: ToolPlan) -> None:
         _say(f"  ⊘ rejected {len(plan.rejected)} endpoints, e.g. {examples}")
 
 
-def _write_eval_artifacts(out_dir: Path, suite, report) -> None:
-    """Keep the gate's evidence next to the code it judged."""
+def _write_eval_artifacts(out_dir: Path, suite, smoke, report) -> None:
+    """Keep the gate's evidence next to the code it judged. A smoke failure
+    leaves the selection outcomes empty rather than absent, so the evidence
+    file always says which gate stopped the attempt."""
     (out_dir / "evals.json").write_text(
         json.dumps(
             {
                 "cases": suite.model_dump()["cases"],
-                "outcomes": [vars(outcome) for outcome in report.outcomes],
-                "summary": report.summary,
+                "smoke": [vars(outcome) for outcome in smoke],
+                "outcomes": [vars(outcome) for outcome in report.outcomes] if report else [],
+                "summary": report.summary if report else "execution smoke failed; selection not run",
             },
             indent=2,
         )
         + "\n"
     )
+
+
+def _args_line(args: dict) -> str:
+    line = ", ".join(f"{name}={value!r}" for name, value in args.items())
+    return line if len(line) <= 70 else line[:67] + "..."
 
 
 def _parse_args() -> argparse.Namespace:

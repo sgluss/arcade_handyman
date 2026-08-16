@@ -11,6 +11,7 @@ Regenerate with: handyman generate {{ source_arg }}
 
 import httpx
 from arcade_mcp_server import MCPApp{{ ", Context" if required_secrets else "" }}
+from arcade_mcp_server.exceptions import FatalToolError, NetworkTransportError, UpstreamError
 
 app = MCPApp(
     name={{ plan.server_name | py }},
@@ -32,43 +33,66 @@ def _request(
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
 ) -> Any:
-    """Issue one API request and return parsed JSON, raising a readable error
-    on HTTP failure so the calling agent can react."""
+    """Issue one API request and return parsed JSON. Failures are raised as
+    Arcade's typed tool errors — a plain exception would be masked as an
+    "unhandled error" on the wire, hiding the message from the calling agent."""
     all_headers = dict(_DEFAULT_HEADERS)
     all_headers.update(headers or {})
-    response = httpx.request(
-        method,
-        BASE_URL + path,
-        params=params or None,
-        headers=all_headers,
-        timeout=30,
-        follow_redirects=True,
-    )
+    try:
+        response = httpx.request(
+            method,
+            BASE_URL + path,
+            params=params or None,
+            headers=all_headers,
+            timeout=30,
+            follow_redirects=True,
+        )
+    except httpx.RequestError as error:
+        raise NetworkTransportError(f"{method} {path} did not complete: {error}") from error
     if response.status_code >= 400:
-        raise RuntimeError(f"{method} {path} failed ({response.status_code}): {response.text[:300]}")
-    return response.json()
+        raise UpstreamError(
+            f"{method} {path} failed ({response.status_code}): {response.text[:300]}",
+            status_code=response.status_code,
+        )
+    try:
+        return response.json()
+    except ValueError as error:
+        raise UpstreamError(
+            f"{method} {path} returned non-JSON ({response.status_code})",
+            status_code=response.status_code,
+        ) from error
 
 
 def _dig(payload: Any, path: str) -> Any:
-    """Follow a dot path into a JSON payload, failing loudly when it is absent.
-    Used between chained calls, where a missing value means the chain is wrong."""
+    """Follow a dot path (numeric segments index lists) into a JSON payload,
+    failing loudly when it is absent. Used between chained calls, where a
+    missing value means the chain's wiring is wrong — an authoring defect, so
+    it raises Arcade's fatal kind rather than an upstream one."""
     value = payload
     for key in path.split("."):
-        if not isinstance(value, dict) or key not in value:
-            available = sorted(value.keys()) if isinstance(value, dict) else type(value).__name__
-            raise RuntimeError(f"response missing '{path}' (at '{key}'; found: {available})")
-        value = value[key]
+        if isinstance(value, list) and key.isdigit() and int(key) < len(value):
+            value = value[int(key)]
+        elif isinstance(value, dict) and key in value:
+            value = value[key]
+        else:
+            found = sorted(value.keys()) if isinstance(value, dict) else (
+                f"list of {len(value)}" if isinstance(value, list) else type(value).__name__)
+            raise FatalToolError(f"response missing '{path}' (at '{key}'; found: {found})")
     return value
 
 
 def _prune(payload: Any, path: str) -> Any:
-    """Best-effort final shaping: return the payload at a dot path, or the full
-    payload when the shape drifted — a bigger answer beats a broken tool."""
+    """Best-effort final shaping: return the payload at a dot path (numeric
+    segments index lists), or the full payload when the shape drifted — a
+    bigger answer beats a broken tool."""
     value = payload
     for key in path.split("."):
-        if not isinstance(value, dict) or key not in value:
+        if isinstance(value, list) and key.isdigit() and int(key) < len(value):
+            value = value[int(key)]
+        elif isinstance(value, dict) and key in value:
+            value = value[key]
+        else:
             return payload
-        value = value[key]
     return value
 
 

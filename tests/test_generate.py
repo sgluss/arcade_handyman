@@ -53,6 +53,39 @@ def test_unset_optional_secrets_are_omitted_from_headers(
     assert namespace["_DEFAULT_HEADERS"] == {"User-Agent": "fixture-tests (dev@example.com)"}
 
 
+def test_docs_regen_command_keeps_its_flags(fixture_plan, fixture_spec):
+    """The header's regenerate command must be runnable as printed — docs
+    ingests need their --docs --base-url flags back."""
+    source = render_server(
+        fixture_plan, fixture_spec, source="https://docs.example/readme",
+        source_arg="https://docs.example/readme --docs --base-url https://api.example.com",
+    )
+    assert ("Regenerate with: handyman generate https://docs.example/readme "
+            "--docs --base-url https://api.example.com") in source
+    assert "Source API: https://docs.example/readme\n" in source
+
+
+def test_dot_paths_index_lists(fixture_plan, fixture_spec, tmp_path):
+    """Chained extracts routinely need the first element of a list (found
+    live: NWS station discovery is features[0] deep, and _dig treating '0'
+    as a dict key broke the chain against the real API)."""
+    from arcade_mcp_server.exceptions import FatalToolError
+
+    source = render_server(fixture_plan, fixture_spec, source="tests/fixture")
+    server_file = tmp_path / "server.py"
+    server_file.write_text(source)
+    namespace: dict = {"__name__": "generated_server_under_test"}
+    exec(compile(source, str(server_file), "exec"), namespace)  # noqa: S102
+
+    payload = {"features": [{"properties": {"stationIdentifier": "KNYC"}}]}
+    assert namespace["_dig"](payload, "features.0.properties.stationIdentifier") == "KNYC"
+    assert namespace["_prune"](payload, "features.0.properties") == {"stationIdentifier": "KNYC"}
+    # out of range: _dig fails loudly with the walked path, _prune stays lenient
+    with pytest.raises(FatalToolError, match="response missing"):
+        namespace["_dig"](payload, "features.9.properties")
+    assert namespace["_prune"](payload, "features.9") == payload
+
+
 def test_no_secret_plans_render_without_unused_imports(fixture_plan, fixture_spec):
     """A server with no secrets must not import os — the static gate flags
     unused imports (found live: the keyless Hacker News server)."""

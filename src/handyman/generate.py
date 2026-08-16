@@ -35,21 +35,27 @@ class GenerationError(Exception):
 # ---------------------------------------------------------------------------
 
 
-def generate_artifacts(plan: ToolPlan, spec: APISpec, out_dir: Path, source: str) -> Path:
+def generate_artifacts(
+    plan: ToolPlan, spec: APISpec, out_dir: Path, source: str, source_arg: str | None = None
+) -> Path:
     """Write server.py, plan.json, and a provenance README into `out_dir`.
 
     Returns the server path. plan.json is the design stage's full decision,
     kept next to the code it produced so the artifact is self-explaining.
+    `source_arg` is the full CLI argument string when it differs from the
+    source URL (docs ingests need --docs --base-url to regenerate).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     server_path = out_dir / "server.py"
-    server_path.write_text(render_server(plan, spec, source))
+    server_path.write_text(render_server(plan, spec, source, source_arg))
     (out_dir / "plan.json").write_text(plan.model_dump_json(indent=2) + "\n")
     (out_dir / "README.md").write_text(_readme(plan, source))
     return server_path
 
 
-def render_server(plan: ToolPlan, spec: APISpec, source: str) -> str:
+def render_server(
+    plan: ToolPlan, spec: APISpec, source: str, source_arg: str | None = None
+) -> str:
     endpoints = {endpoint.id: endpoint for endpoint in spec.endpoints}
     required = [s for s in plan.secrets if s.required]
     optional = [s for s in plan.secrets if not s.required]
@@ -60,7 +66,7 @@ def render_server(plan: ToolPlan, spec: APISpec, source: str) -> str:
     return template.render(
         plan=plan,
         source=source,
-        source_arg=source,
+        source_arg=source_arg or source,
         base_url=spec.base_url,
         required_secrets=required,
         optional_secrets=optional,

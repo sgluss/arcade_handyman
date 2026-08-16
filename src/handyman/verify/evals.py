@@ -123,7 +123,7 @@ async def run_eval_suite(suite: EvalSuite, plan: ToolPlan, server_path: Path) ->
     # always sees the server that was just generated, not the first one.
     clear_tools_cache()
     await arcade_suite.add_mcp_stdio_server([sys.executable, str(server_path), "stdio"])
-    served = _map_served_names(plan, arcade_suite.list_tool_names())
+    served = map_served_names(plan, arcade_suite.list_tool_names())
 
     for case in suite.cases:
         types = {
@@ -133,7 +133,7 @@ async def run_eval_suite(suite: EvalSuite, plan: ToolPlan, server_path: Path) ->
             for arg in tool.args
         }
         exact = {
-            a.name: _typed(a.value, types.get(a.name))
+            a.name: typed_value(a.value, types.get(a.name))
             for a in case.expected_args
             if a.match == "exact"
         }
@@ -180,13 +180,15 @@ class _ToolCacheAdapter:
         return await self._client.messages.create(**kwargs)
 
 
-def _typed(value: str, py_type: str | None) -> Any:
+def typed_value(value: str, py_type: str | None) -> Any:
     """Re-type an expected value to the argument's declared type.
 
     The IR stores expected values as strings (a structured-outputs
     constraint), but the agent under evaluation sends what the tool schema
     declares — and a BinaryCritic compares exactly, so '-74.0060' the string
-    can never equal -74.006 the float.
+    can never equal -74.006 the float. Public because the smoke stage types
+    its call arguments through the same rule, keeping both gates' reading of
+    a case identical.
     """
     try:
         if py_type == "float":
@@ -227,7 +229,7 @@ def _gate_runner() -> tuple[Any, str, str]:
     )
 
 
-def _map_served_names(plan: ToolPlan, served_names: list[str]) -> dict[str, str]:
+def map_served_names(plan: ToolPlan, served_names: list[str]) -> dict[str, str]:
     """Match design-time names to arcade-mcp's namespaced served names
     (get_forecast -> Nws_GetForecast) without hardcoding the convention."""
     mapping = {}

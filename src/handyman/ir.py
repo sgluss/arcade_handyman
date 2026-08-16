@@ -112,7 +112,10 @@ class Extract(BaseModel):
     """Names a value pulled from a step's JSON response for use in later steps."""
 
     name: str = Field(description="Variable name usable in later bindings")
-    path: str = Field(description="Dot path into the response JSON, e.g. properties.gridId")
+    path: str = Field(
+        description="Dot path into the response JSON; numeric segments index lists, "
+        "e.g. properties.gridId or features.0.properties.stationIdentifier"
+    )
 
 
 class CallStep(BaseModel):
