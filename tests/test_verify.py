@@ -4,7 +4,7 @@ the design-name -> served-name mapping the eval runner depends on."""
 import pytest
 
 from handyman.generate import generate_artifacts
-from handyman.verify.evals import _map_served_names
+from handyman.verify.evals import _map_served_names, _typed
 from handyman.verify.static import boot_check, static_check
 
 
@@ -40,3 +40,12 @@ def test_design_names_map_to_served_names(fixture_plan):
 def test_ambiguous_served_names_fail_loudly(fixture_plan):
     with pytest.raises(RuntimeError, match="cannot map"):
         _map_served_names(fixture_plan, ["Fixture_GetStationData"])
+
+
+def test_expected_values_retype_to_declared_arg_types():
+    assert _typed("-74.0060", "float") == -74.006
+    assert _typed("3", "int") == 3
+    assert _typed("true", "bool") is True
+    assert _typed("Seattle, WA", "str") == "Seattle, WA"
+    # unparseable values fall back to the string rather than crashing the gate
+    assert _typed("not-a-number", "float") == "not-a-number"

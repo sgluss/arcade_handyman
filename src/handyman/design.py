@@ -67,7 +67,9 @@ A previous version of this plan failed its evaluation gate. Failing cases are
 listed below — an evaluator LLM, seeing only your tool names/descriptions/
 arguments, chose the wrong tool or wrong arguments. Revise the plan so a fresh
 model would choose correctly: sharpen names, disambiguate descriptions, adjust
-arguments. Keep the overall tool surface unless a failure demands otherwise.
+arguments. Keep the overall tool surface unless a failure demands otherwise —
+argument-value or format failures are description problems; fix the wording
+rather than removing the tool.
 
 """
 

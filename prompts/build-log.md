@@ -45,3 +45,62 @@ moving on. Notable mid-build findings are logged below as they occurred.
 - `arcade_mcp_server` namespaces served tool names (`greet` on server `hello`
   is listed as `Hello_Greet`), so nothing downstream hardcodes tool names —
   the eval runner and demo agent resolve names from the live `tools/list`.
+
+## Session 2 — provider pivot, tracing, project name
+
+**Prompt (paraphrased):** "Configure the project to run on my own model
+credits, wire in the monitoring stack I use elsewhere (pydantic-ai + Logfire),
+and then let's design an eval for the finished workflow. Also: the project is
+now called 'handyman'."
+
+Decisions:
+
+1. **Model provider → AWS Bedrock.** The original plan assumed a direct
+   Anthropic API key; my existing infrastructure runs Claude via Bedrock, so
+   the pipeline moved to Bedrock-hosted Claude under a project-scoped,
+   invoke-only IAM user. Reproducibility note: Claude 5 models on Bedrock
+   require an explicit foundation-model agreement before first invocation
+   (`create-foundation-model-agreement`); invoke permissions alone produce a
+   misleading marketplace-authorization error.
+2. **LLM layer → pydantic-ai.** Chosen over a minimal SDK swap because it
+   turns the provider into a config string (bedrock/anthropic/openai) instead
+   of code, natively enforces schema-validated outputs with retries, and
+   bridges MCP-over-stdio for the consumer agent — a bare OpenAI-SDK swap
+   would have meant hand-rolling the agent's tool loop, since that SDK has no
+   local-stdio MCP bridge.
+3. **Eval gate stays Arcade-native.** `arcade_evals` drives an openai- or
+   anthropic-style client itself; Bedrock rides through the anthropic SDK's
+   Bedrock client, which `arcade_evals` accepts unchanged because it
+   duck-types the Messages API. The reviewer-key story improves: any one of
+   AWS creds, an Anthropic key, or an OpenAI key runs the whole pipeline.
+4. **Tracing: Logfire, token-gated.** With `LOGFIRE_TOKEN` set, every
+   pipeline stage and the demo agent stream spans; without it, tracing is a
+   no-op — the reviewer path stays zero-config.
+
+**First full live run (NWS, Bedrock sonnet-5).** Design exceeded the plan on
+attempt 1 — six tools including three 2-call chains (forecast, hourly, and a
+current-conditions chain through station discovery we hadn't scripted), the
+User-Agent scheme as an optional secret with a default, 63 rejections with
+sound one-clause reasons. The eval gate then failed 3/12 cases and the
+revision loop fired — which is the gate doing its job, and diagnosing the
+failures produced three permanent fixes:
+
+1. **Expected-value typing.** The IR stores expected argument values as
+   strings (a structured-outputs constraint), but the model under evaluation
+   sends what the tool schema declares — so `'-74.0060'` (string) could never
+   equal `-74.006` (float) under an exact-match critic. The gate now re-types
+   expected values against the plan's declared argument types before scoring.
+2. **Examiner multi-intent leak.** Cases like "what's the forecast — and any
+   storm warnings I should worry about?" imply two tool calls but expected
+   one; the runner hard-fails on call count. The examiner now has a
+   one-intent-per-message rule.
+3. **Upstream caching bug in `arcade_evals`.** Stdio tool listings are
+   memoized by command line, so every revision attempt was scored against the
+   *first* attempt's server — attempt 2's score was quietly tainted and
+   attempt 3 crashed on a tool-name mismatch. The gate clears the cache per
+   run; worth an upstream issue/PR to Arcade.
+
+Also observed: given failure feedback, the first design revision *removed*
+tools (6 → 4) rather than sharpening wording — the revision instructions now
+state that argument-format failures are description problems, not grounds for
+dropping a tool.

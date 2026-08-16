@@ -25,6 +25,7 @@ from typing import Any
 from anthropic import AsyncAnthropic, AsyncAnthropicBedrock
 from arcade_evals import BinaryCritic, ExpectedMCPToolCall, SimilarityCritic
 from arcade_evals import EvalSuite as ArcadeEvalSuite
+from arcade_evals.loaders import clear_tools_cache
 from openai import AsyncOpenAI
 
 from handyman.ir import EvalSuite, ToolPlan
@@ -40,6 +41,10 @@ Rules for good cases:
 - Write user messages a real person would send. Never mention tool or argument
   names; the message must justify every expected argument value (coordinates,
   IDs, counts must appear in or follow from the message).
+- One intent per message: each message must plainly imply exactly one tool
+  call. Never bundle a secondary ask ("...and any alerts I should know
+  about?"), and avoid phrasings that would tempt a conscientious model into
+  making an extra call beyond the one you expect.
 - Cover every tool at least once, and include at least one case whose phrasing
   sits near the boundary between two tools, so weak descriptions fail.
 - Expect only arguments a model must supply; leave defaulted arguments out
@@ -113,11 +118,25 @@ async def run_eval_suite(suite: EvalSuite, plan: ToolPlan, server_path: Path) ->
         system_message=plan.instructions,
         max_concurrent=4,
     )
+    # arcade_evals memoizes stdio tool listings by command line, which is
+    # identical across our design-revision attempts — clear it so the gate
+    # always sees the server that was just generated, not the first one.
+    clear_tools_cache()
     await arcade_suite.add_mcp_stdio_server([sys.executable, str(server_path), "stdio"])
     served = _map_served_names(plan, arcade_suite.list_tool_names())
 
     for case in suite.cases:
-        exact = {a.name: a.value for a in case.expected_args if a.match == "exact"}
+        types = {
+            arg.name: arg.py_type
+            for tool in plan.tools
+            if tool.name == case.expected_tool
+            for arg in tool.args
+        }
+        exact = {
+            a.name: _typed(a.value, types.get(a.name))
+            for a in case.expected_args
+            if a.match == "exact"
+        }
         similar = {a.name: a.value for a in case.expected_args if a.match == "similar"}
         weight = 1.0 / max(len(exact) + len(similar), 1)
         arcade_suite.add_case(
@@ -133,6 +152,26 @@ async def run_eval_suite(suite: EvalSuite, plan: ToolPlan, server_path: Path) ->
     client, model_id, provider = _gate_runner()
     results = await arcade_suite.run(client, model=model_id, provider=provider)
     return _report(results)
+
+
+def _typed(value: str, py_type: str | None) -> Any:
+    """Re-type an expected value to the argument's declared type.
+
+    The IR stores expected values as strings (a structured-outputs
+    constraint), but the agent under evaluation sends what the tool schema
+    declares — and a BinaryCritic compares exactly, so '-74.0060' the string
+    can never equal -74.006 the float.
+    """
+    try:
+        if py_type == "float":
+            return float(value)
+        if py_type == "int":
+            return int(value)
+        if py_type == "bool":
+            return value.strip().lower() in ("true", "1", "yes")
+    except ValueError:
+        return value
+    return value
 
 
 def _gate_runner() -> tuple[Any, str, str]:
