@@ -7,8 +7,8 @@ import sys
 
 import pytest
 
-from toolsmith.generate import GenerationError, generate_artifacts, render_server
-from toolsmith.ir import CallStep, ParamBinding
+from handyman.generate import GenerationError, generate_artifacts, render_server
+from handyman.ir import CallStep, ParamBinding
 
 
 def test_rendered_server_is_valid_python(fixture_plan, fixture_spec):

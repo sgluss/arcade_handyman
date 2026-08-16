@@ -11,8 +11,8 @@ mechanical downstream — code generation, secret wiring, eval scoring — runs
 deterministically off that plan.
 """
 
-from toolsmith.ir import APISpec, Endpoint, ToolPlan
-from toolsmith.llm import parse
+from handyman.ir import APISpec, Endpoint, ToolPlan
+from handyman.llm import parse
 
 DESIGN_SYSTEM = """\
 You are an expert MCP tool designer. Given an inventory of an HTTP API, you

@@ -15,10 +15,10 @@ import re
 
 import httpx
 
-from toolsmith.ir import APISpec
-from toolsmith.llm import parse
+from handyman.ir import APISpec
+from handyman.llm import parse
 
-_FETCH_HEADERS = {"User-Agent": "toolsmith (https://github.com/sgluss)"}
+_FETCH_HEADERS = {"User-Agent": "handyman (https://github.com/sgluss)"}
 _MAX_DOC_CHARS = 60_000
 
 EXTRACTION_SYSTEM = """\

@@ -15,10 +15,10 @@ from typing import Any
 import httpx
 import yaml
 
-from toolsmith.ir import APIParam, APISpec, AuthScheme, Endpoint
+from handyman.ir import APIParam, APISpec, AuthScheme, Endpoint
 
 # Identify ourselves to spec hosts (api.weather.gov rejects anonymous clients).
-_FETCH_HEADERS = {"User-Agent": "toolsmith (https://github.com/sgluss)", "Accept": "*/*"}
+_FETCH_HEADERS = {"User-Agent": "handyman (https://github.com/sgluss)", "Accept": "*/*"}
 
 _HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 

@@ -13,7 +13,7 @@ own evals is not published silently — the pipeline either converges or emits
 with a loud warning and the failing cases attached.
 """
 
-from toolsmith.verify.evals import EvalReport, author_eval_suite, run_eval_suite
-from toolsmith.verify.static import boot_check, static_check
+from handyman.verify.evals import EvalReport, author_eval_suite, run_eval_suite
+from handyman.verify.static import boot_check, static_check
 
 __all__ = ["EvalReport", "author_eval_suite", "boot_check", "run_eval_suite", "static_check"]

@@ -3,9 +3,9 @@ the design-name -> served-name mapping the eval runner depends on."""
 
 import pytest
 
-from toolsmith.generate import generate_artifacts
-from toolsmith.verify.evals import _map_served_names
-from toolsmith.verify.static import boot_check, static_check
+from handyman.generate import generate_artifacts
+from handyman.verify.evals import _map_served_names
+from handyman.verify.static import boot_check, static_check
 
 
 @pytest.fixture()

@@ -17,7 +17,7 @@ from anthropic.lib.tools.mcp import async_mcp_tool
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from toolsmith.llm import MODEL
+from handyman.llm import MODEL
 
 SYSTEM = """\
 You are a capable personal assistant. Use the available tools to answer with

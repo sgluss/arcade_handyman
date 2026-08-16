@@ -10,7 +10,7 @@ proven here instead.
 
 import pytest
 
-from toolsmith.ir import (
+from handyman.ir import (
     APIParam,
     APISpec,
     AuthScheme,

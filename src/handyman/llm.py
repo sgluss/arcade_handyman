@@ -15,7 +15,7 @@ from pydantic import BaseModel
 T = TypeVar("T", bound=BaseModel)
 
 # One model for every judgment stage; override for experiments without edits.
-MODEL = os.environ.get("TOOLSMITH_MODEL", "claude-opus-5")
+MODEL = os.environ.get("HANDYMAN_MODEL", "claude-opus-5")
 
 _client: Anthropic | None = None
 

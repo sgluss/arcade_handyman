@@ -8,7 +8,7 @@ Two paths produce the identical contract:
 Everything downstream (design, generate, verify) is source-agnostic.
 """
 
-from toolsmith.ingest.docs import spec_from_docs
-from toolsmith.ingest.openapi import spec_from_openapi
+from handyman.ingest.docs import spec_from_docs
+from handyman.ingest.openapi import spec_from_openapi
 
 __all__ = ["spec_from_docs", "spec_from_openapi"]

@@ -25,8 +25,8 @@ from anthropic import AsyncAnthropic
 from arcade_evals import BinaryCritic, ExpectedMCPToolCall, SimilarityCritic
 from arcade_evals import EvalSuite as ArcadeEvalSuite
 
-from toolsmith.ir import EvalSuite, ToolPlan
-from toolsmith.llm import MODEL, parse
+from handyman.ir import EvalSuite, ToolPlan
+from handyman.llm import MODEL, parse
 
 EXAMINER_SYSTEM = """\
 You are an evaluation author for MCP tool servers. You see only the consumer

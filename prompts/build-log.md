@@ -13,7 +13,7 @@ Arcade figured heavily around the agentic generation of MCP servers and tools."
 
 Decisions made in discussion (human-selected at each fork):
 
-1. **Project:** a meta-agent ("Toolsmith") that turns an API description into a
+1. **Project:** a meta-agent ("Handyman") that turns an API description into a
    working, eval-gated Arcade MCP server — chosen over a conventional
    catalog-tools personal agent because it targets the problem the interview
    conversations centered on, and the real-life problem is genuine: agents

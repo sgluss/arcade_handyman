@@ -1,8 +1,8 @@
-"""Toolsmith CLI — the pipeline conductor.
+"""Handyman CLI — the pipeline conductor.
 
-    toolsmith generate <openapi-url-or-path>            # spec-first ingest
-    toolsmith generate <docs-url> --docs --base-url ... # docs-page ingest
-    toolsmith demo <server-name> [--task "..."]         # use the generated tools
+    handyman generate <openapi-url-or-path>            # spec-first ingest
+    handyman generate <docs-url> --docs --base-url ... # docs-page ingest
+    handyman demo <server-name> [--task "..."]         # use the generated tools
 
 One generate run is: ingest -> design -> generate -> verify, with verify
 failures fed back into design for a bounded number of revision attempts. The
@@ -22,12 +22,12 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from toolsmith.agent import run_agent
-from toolsmith.design import design_toolplan
-from toolsmith.generate import GenerationError, generate_artifacts
-from toolsmith.ingest import spec_from_docs, spec_from_openapi
-from toolsmith.ir import APISpec, ToolPlan
-from toolsmith.verify import author_eval_suite, boot_check, run_eval_suite, static_check
+from handyman.agent import run_agent
+from handyman.design import design_toolplan
+from handyman.generate import GenerationError, generate_artifacts
+from handyman.ingest import spec_from_docs, spec_from_openapi
+from handyman.ir import APISpec, ToolPlan
+from handyman.verify import author_eval_suite, boot_check, run_eval_suite, static_check
 
 
 def main() -> None:
@@ -44,7 +44,7 @@ def run_demo(args: argparse.Namespace) -> None:
     if server_path.suffix != ".py":
         server_path = Path("generated") / args.server / "server.py"
     if not server_path.exists():
-        sys.exit(f"no server at {server_path} — run `toolsmith generate` first")
+        sys.exit(f"no server at {server_path} — run `handyman generate` first")
     task = args.task or _default_task(server_path.parent.name)
 
     _stage("DEMO", str(server_path))
@@ -164,7 +164,7 @@ def _write_eval_artifacts(out_dir: Path, suite, report) -> None:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="toolsmith", description=__doc__)
+    parser = argparse.ArgumentParser(prog="handyman", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
 
     generate = commands.add_parser("generate", help="Generate an MCP server from an API")
