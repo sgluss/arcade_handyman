@@ -211,7 +211,11 @@ def _gate_runner() -> tuple[Any, str, str]:
     """
     name = eval_model_name()
     provider, _, model_id = name.partition(":")
-    if provider == "bedrock" and "anthropic" in model_id:
+    # Application-inference-profile ARNs have opaque ids, so they can't be
+    # sniffed for "anthropic"; ours wrap Claude, and a profile that doesn't
+    # would fail loudly on the first call anyway.
+    claude_on_bedrock = "anthropic" in model_id or "application-inference-profile" in model_id
+    if provider == "bedrock" and claude_on_bedrock:
         return AsyncAnthropicBedrock(), model_id, "anthropic"
     if provider == "anthropic":
         return AsyncAnthropic(), model_id, "anthropic"

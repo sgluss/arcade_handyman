@@ -156,3 +156,16 @@ Decisions and results:
    immediately while InvokeModel (the anthropic SDK's path) returned a
    misleading marketplace-authorization error until a marketplace-authorized
    principal performed one first invoke to materialize the subscription.
+   (AWS's model-access docs later explained it: first-invoke auto-subscribes
+   in the background, and calls "may succeed temporarily" while it settles.)
+4. **Segregation without a second account.** Hard isolation via an AWS
+   Organizations member account was analyzed and dropped; instead every
+   invocation now flows through Project-tagged Bedrock *application
+   inference profiles* — giving this project its own cost line and
+   CloudWatch metrics namespace — and the runtime role was narrowed so it
+   can invoke *only* those tagged profiles (a negative test confirms the
+   shared system profiles are denied, so this project's and other
+   workloads' invocation paths are disjoint at the IAM level). CloudTrail
+   sessions carry a fixed project session name. The repo is unaffected:
+   profile ARNs are ordinary model strings in the local env, and reviewer
+   defaults stay the short model ids.
