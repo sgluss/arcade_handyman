@@ -1,0 +1,204 @@
+{
+  "server_name": "hacker_news",
+  "display_name": "Hacker News",
+  "instructions": "Use these tools to browse Hacker News content: stories, comments, jobs, polls, and users. Start with one of the listing tools (top/new/best/ask/show/job stories) to get a list of item ids, then use get_item to fetch details of a specific item (including its comments via the 'kids' field, which you can resolve with further get_item calls). Use get_user for profile info on a specific username. All data is read-only and public.",
+  "secrets": [],
+  "tools": [
+    {
+      "name": "get_item",
+      "description": "Fetch a single Hacker News item (story, comment, job posting, Ask HN, Show HN, or poll) by its numeric id. Use this to get full details of an item you already have the id for, including title, author, score, text, url, and child comment ids ('kids'). To find ids, first use one of the story-listing tools. Returns the item's fields, or null if the id doesn't exist or the item was deleted.",
+      "args": [
+        {
+          "name": "id",
+          "py_type": "int",
+          "description": "The item's unique numeric id.",
+          "required": true,
+          "default": null
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "get_item",
+          "bindings": [
+            {
+              "param": "id",
+              "value": "{id}"
+            }
+          ],
+          "extracts": []
+        }
+      ],
+      "response_extract": null,
+      "returns": "Item object with fields like by, descendants, id, kids, score, time, title, type, url, text, parent, poll, parts, deleted, dead."
+    },
+    {
+      "name": "get_user",
+      "description": "Fetch a Hacker News user's public profile by their case-sensitive username. Use this when you need info about a specific person (karma, account creation time, bio, submitted item ids). Only returns data for users with public activity; returns null if the user doesn't exist.",
+      "args": [
+        {
+          "name": "username",
+          "py_type": "str",
+          "description": "The user's exact, case-sensitive username.",
+          "required": true,
+          "default": null
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "get_user",
+          "bindings": [
+            {
+              "param": "id",
+              "value": "{username}"
+            }
+          ],
+          "extracts": []
+        }
+      ],
+      "response_extract": null,
+      "returns": "User object with about, created, id, karma, and submitted (list of item ids)."
+    },
+    {
+      "name": "list_top_stories",
+      "description": "Get the current top-ranked Hacker News stories (the front page and beyond), up to 500 item ids ordered by rank. Use this for 'what's trending on HN right now'. Returns only ids; call get_item on individual ids to get titles, scores, etc. Note: response is large, so this tool returns only the first N ids as requested.",
+      "args": [
+        {
+          "name": "limit",
+          "py_type": "int",
+          "description": "Maximum number of story ids to return, taken from the top of the ranked list.",
+          "required": false,
+          "default": "30"
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "get_top_stories",
+          "bindings": [],
+          "extracts": []
+        }
+      ],
+      "response_extract": null,
+      "returns": "List of story item ids, ranked by current top placement."
+    },
+    {
+      "name": "list_new_stories",
+      "description": "Get the newest Hacker News story submissions, up to 500 item ids, most recent first. Use this to find recently posted stories before they've accumulated votes. Returns only ids; call get_item on individual ids for details.",
+      "args": [
+        {
+          "name": "limit",
+          "py_type": "int",
+          "description": "Maximum number of story ids to return, taken from the newest end of the list.",
+          "required": false,
+          "default": "30"
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "get_new_stories",
+          "bindings": [],
+          "extracts": []
+        }
+      ],
+      "response_extract": null,
+      "returns": "List of story item ids, newest first."
+    },
+    {
+      "name": "list_best_stories",
+      "description": "Get Hacker News stories currently ranked 'best' (highest quality/score over a recent window), as item ids. Use this when the user wants a curated set of high-quality recent stories rather than raw new or top-ranked ones. Returns only ids; call get_item on individual ids for details.",
+      "args": [
+        {
+          "name": "limit",
+          "py_type": "int",
+          "description": "Maximum number of story ids to return, taken from the top of the best-ranked list.",
+          "required": false,
+          "default": "30"
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "get_best_stories",
+          "bindings": [],
+          "extracts": []
+        }
+      ],
+      "response_extract": null,
+      "returns": "List of story item ids, best-ranked first."
+    },
+    {
+      "name": "list_ask_hn_stories",
+      "description": "Get the latest 'Ask HN' story item ids (up to 200), where users ask the Hacker News community a question. Use this when the user specifically wants Ask HN posts rather than general stories. Returns only ids; call get_item on individual ids for details.",
+      "args": [
+        {
+          "name": "limit",
+          "py_type": "int",
+          "description": "Maximum number of story ids to return.",
+          "required": false,
+          "default": "30"
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "get_ask_stories",
+          "bindings": [],
+          "extracts": []
+        }
+      ],
+      "response_extract": null,
+      "returns": "List of Ask HN story item ids, most recent first."
+    },
+    {
+      "name": "list_show_hn_stories",
+      "description": "Get the latest 'Show HN' story item ids (up to 200), where users showcase a project. Use this when the user specifically wants Show HN posts. Returns only ids; call get_item on individual ids for details.",
+      "args": [
+        {
+          "name": "limit",
+          "py_type": "int",
+          "description": "Maximum number of story ids to return.",
+          "required": false,
+          "default": "30"
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "get_show_stories",
+          "bindings": [],
+          "extracts": []
+        }
+      ],
+      "response_extract": null,
+      "returns": "List of Show HN story item ids, most recent first."
+    },
+    {
+      "name": "list_job_stories",
+      "description": "Get the latest job posting item ids on Hacker News (up to 200). Use this when the user wants job listings specifically. Returns only ids; call get_item on individual ids for details.",
+      "args": [
+        {
+          "name": "limit",
+          "py_type": "int",
+          "description": "Maximum number of job story ids to return.",
+          "required": false,
+          "default": "30"
+        }
+      ],
+      "steps": [
+        {
+          "endpoint_id": "get_job_stories",
+          "bindings": [],
+          "extracts": []
+        }
+      ],
+      "response_extract": null,
+      "returns": "List of job story item ids, most recent first."
+    }
+  ],
+  "rejected": [
+    {
+      "endpoint_id": "get_max_item_id",
+      "reason": "internal bookkeeping value for crawling all items, not useful to an agent answering user questions"
+    },
+    {
+      "endpoint_id": "get_updates",
+      "reason": "low-level change-feed for sync/crawling infrastructure, not a meaningful agent-facing query"
+    }
+  ]
+}

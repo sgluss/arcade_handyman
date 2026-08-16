@@ -17,6 +17,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -68,7 +69,9 @@ def run_demo(args: argparse.Namespace) -> None:
 
 def _default_task(server_name: str) -> str:
     """Canned demo tasks for the two servers this take-home ships; anything
-    else needs an explicit --task."""
+    else needs an explicit --task. Lookup ignores naming style, since the
+    design stage chooses the server's name (hacker_news, hackernews, ...)."""
+    server_name = re.sub(r"[^a-z0-9]", "", server_name.lower())
     home = f"latitude {os.environ.get('HOME_LAT', '47.6062')}, " \
            f"longitude {os.environ.get('HOME_LON', '-122.3321')}"
     defaults = {

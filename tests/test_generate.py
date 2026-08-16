@@ -53,6 +53,15 @@ def test_unset_optional_secrets_are_omitted_from_headers(
     assert namespace["_DEFAULT_HEADERS"] == {"User-Agent": "fixture-tests (dev@example.com)"}
 
 
+def test_no_secret_plans_render_without_unused_imports(fixture_plan, fixture_spec):
+    """A server with no secrets must not import os — the static gate flags
+    unused imports (found live: the keyless Hacker News server)."""
+    fixture_plan.secrets = []
+    source = render_server(fixture_plan, fixture_spec, source="tests/fixture")
+    compile(source, "server.py", "exec")
+    assert "import os" not in source
+
+
 @pytest.mark.parametrize(
     "mutate, message_fragment",
     [

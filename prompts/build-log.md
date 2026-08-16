@@ -104,3 +104,27 @@ Also observed: given failure feedback, the first design revision *removed*
 tools (6 → 4) rather than sharpening wording — the revision instructions now
 state that argument-format failures are description problems, not grounds for
 dropping a tool.
+
+**The gate passed 14/14 — and the demo still crashed.** The rerun's design
+(seven tools, three 2-call chains) cleared the eval gate on attempt 1, then
+every tool call failed at runtime: the design had honestly declared the
+spec's `API-Key` scheme as an optional secret with no default, and the
+generator rendered it as a `None` request header, which httpx rejects with a
+TypeError. Fixed in the template (unset optional secrets are omitted
+entirely) with a fixture regression test; the NWS demo then worked
+end-to-end — live chained calls, real forecast, useful answer. This failure
+is the clearest possible demonstration of the declared scope cut ("evals
+test tool selection, not execution correctness"): the selection gate cannot
+see an execution bug. It directly motivates the finished-workflow eval
+designed in the next step.
+
+**Hacker News (docs ingest) first run.** The LLM extraction read the raw
+README into 10 endpoints; design produced the predicted primitive surface
+(ID-list tools + get_item — fan-out chains are a declared cut) with two
+articulate rejections. The static gate then earned its keep by flagging a
+real generated-code defect: with no secrets at all (HN is keyless), the
+template emitted an unused `import os`, and the F-lint pass caught it.
+Honest limitation observed en route: static failures feed the design-
+revision loop, but a template defect isn't something design can fix — the
+loop was harmless yet useless here. Template made conditional; a
+no-secrets rendering test added.

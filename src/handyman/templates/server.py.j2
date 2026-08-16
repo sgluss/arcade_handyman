@@ -6,8 +6,8 @@ Source API: {{ source }}
 Regenerate with: handyman generate {{ source_arg }}
 """
 
-import os
-from typing import Annotated, Any
+{% if optional_secrets %}import os
+{% endif %}from typing import Annotated, Any
 
 import httpx
 from arcade_mcp_server import MCPApp{{ ", Context" if required_secrets else "" }}
