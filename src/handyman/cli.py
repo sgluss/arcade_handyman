@@ -20,6 +20,7 @@ import os
 import sys
 from pathlib import Path
 
+import logfire
 from dotenv import load_dotenv
 
 from handyman.agent import run_agent
@@ -31,12 +32,24 @@ from handyman.verify import author_eval_suite, boot_check, run_eval_suite, stati
 
 
 def main() -> None:
-    load_dotenv()  # ANTHROPIC_API_KEY, NWS_USER_AGENT, HOME_LAT/LON from ./.env
+    load_dotenv()  # model + AWS/Bedrock config, LOGFIRE_TOKEN, NWS_USER_AGENT, HOME_LAT/LON
+    _configure_tracing()
     args = _parse_args()
     if args.command == "generate":
         run_pipeline(args)
     elif args.command == "demo":
         run_demo(args)
+
+
+def _configure_tracing() -> None:
+    """Cloud traces when a Logfire token is present, silent no-op otherwise —
+    the reviewer path stays zero-config either way."""
+    if os.getenv("LOGFIRE_TOKEN"):
+        logfire.configure(service_name="handyman", console=False)
+        logfire.instrument_pydantic_ai()
+        logfire.instrument_anthropic()  # the eval gate drives the anthropic SDK directly
+    else:
+        logfire.configure(service_name="handyman", send_to_logfire=False, console=False)
 
 
 def run_demo(args: argparse.Namespace) -> None:

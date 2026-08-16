@@ -20,13 +20,15 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
-from anthropic import AsyncAnthropic
+from anthropic import AsyncAnthropic, AsyncAnthropicBedrock
 from arcade_evals import BinaryCritic, ExpectedMCPToolCall, SimilarityCritic
 from arcade_evals import EvalSuite as ArcadeEvalSuite
+from openai import AsyncOpenAI
 
 from handyman.ir import EvalSuite, ToolPlan
-from handyman.llm import MODEL, parse
+from handyman.llm import model_name, parse
 
 EXAMINER_SYSTEM = """\
 You are an evaluation author for MCP tool servers. You see only the consumer
@@ -128,8 +130,32 @@ async def run_eval_suite(suite: EvalSuite, plan: ToolPlan, server_path: Path) ->
             + [SimilarityCritic(critic_field=name, weight=weight) for name in similar],
         )
 
-    results = await arcade_suite.run(AsyncAnthropic(), model=MODEL, provider="anthropic")
+    client, model_id, provider = _gate_runner()
+    results = await arcade_suite.run(client, model=model_id, provider=provider)
     return _report(results)
+
+
+def _gate_runner() -> tuple[Any, str, str]:
+    """Map the pipeline's model string onto arcade_evals' runner interface.
+
+    arcade_evals drives a provider SDK client itself (openai or anthropic
+    Messages API), so it cannot take a pydantic-ai model. Bedrock-hosted
+    Claude runs through the anthropic SDK's Bedrock client — the same
+    Messages API over AWS transport — which arcade_evals accepts unchanged
+    because it only duck-types `client.messages.create`.
+    """
+    name = model_name()
+    provider, _, model_id = name.partition(":")
+    if provider == "bedrock" and "anthropic" in model_id:
+        return AsyncAnthropicBedrock(), model_id, "anthropic"
+    if provider == "anthropic":
+        return AsyncAnthropic(), model_id, "anthropic"
+    if provider == "openai":
+        return AsyncOpenAI(), model_id, "openai"
+    raise RuntimeError(
+        f"the eval gate cannot run on {name!r}; it needs a bedrock-hosted Claude, "
+        "anthropic, or openai model"
+    )
 
 
 def _map_served_names(plan: ToolPlan, served_names: list[str]) -> dict[str, str]:
