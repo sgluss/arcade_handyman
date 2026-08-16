@@ -35,6 +35,24 @@ def test_rendered_server_wires_the_plan(fixture_plan, fixture_spec):
     assert "_prune(" in source
 
 
+def test_unset_optional_secrets_are_omitted_from_headers(
+    fixture_plan, fixture_spec, tmp_path, monkeypatch
+):
+    """An optional secret with no default must vanish from request headers
+    until its variable is set — a None header value crashes httpx at call
+    time (found live: NWS_API_KEY took down every tool in the demo)."""
+    monkeypatch.delenv("FIXTURE_TENANT", raising=False)
+    monkeypatch.delenv("FIXTURE_USER_AGENT", raising=False)
+    source = render_server(fixture_plan, fixture_spec, source="tests/fixture")
+    # arcade's tool decorator inspects source and module name at registration,
+    # so the code needs a real file and a __name__ before it can execute.
+    server_file = tmp_path / "server.py"
+    server_file.write_text(source)
+    namespace: dict = {"__name__": "generated_server_under_test"}
+    exec(compile(source, str(server_file), "exec"), namespace)  # noqa: S102
+    assert namespace["_DEFAULT_HEADERS"] == {"User-Agent": "fixture-tests (dev@example.com)"}
+
+
 @pytest.mark.parametrize(
     "mutate, message_fragment",
     [

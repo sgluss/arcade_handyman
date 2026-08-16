@@ -84,6 +84,13 @@ def fixture_plan() -> ToolPlan:
                 default="fixture-tests (dev@example.com)",
                 description="Identify this client to the service.",
             ),
+            SecretSpec(
+                env_var="FIXTURE_TENANT",
+                param_name="X-Tenant",
+                required=False,
+                description="Optional tenant header with no default; must be "
+                "omitted from requests until its variable is set.",
+            ),
         ],
         tools=[
             ToolSpec(
