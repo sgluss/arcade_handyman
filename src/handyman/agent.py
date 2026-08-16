@@ -15,6 +15,8 @@ from pathlib import Path
 from pydantic_ai import Agent
 from pydantic_ai.mcp import MCPToolset, StdioTransport
 from pydantic_ai.messages import FunctionToolCallEvent
+from pydantic_ai.models.bedrock import BedrockModelSettings
+from pydantic_ai.settings import ModelSettings
 
 from handyman.llm import model_name
 
@@ -39,10 +41,30 @@ async def run_agent(server_path: Path, task: str) -> str:
             today=datetime.now(UTC).astimezone().strftime("%A, %B %d, %Y")
         ),
         toolsets=[server],
+        model_settings=_cache_settings(),
     )
     async with agent:
         result = await agent.run(task, event_stream_handler=_trace)
+    usage = result.usage
+    print(
+        f"    usage: {usage.input_tokens:,} in ({usage.cache_read_tokens:,} cached), "
+        f"{usage.output_tokens:,} out"
+    )
     return result.output
+
+
+def _cache_settings() -> ModelSettings | None:
+    """Prompt caching for the agent loop, which re-sends the tool schema, the
+    system prompt, and the whole conversation so far on every turn — cache
+    reads bill at ~10% of fresh input, roughly a 5x saving on fan-out-heavy
+    tasks. Bedrock-only; other providers run with their defaults."""
+    if not model_name().startswith("bedrock:"):
+        return None
+    return BedrockModelSettings(
+        bedrock_cache_tool_definitions=True,
+        bedrock_cache_instructions=True,
+        bedrock_cache_messages=True,
+    )
 
 
 async def _trace(_ctx, events) -> None:

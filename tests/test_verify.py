@@ -1,10 +1,12 @@
 """Verify-stage tests that don't need an LLM: static checks, boot check, and
 the design-name -> served-name mapping the eval runner depends on."""
 
+import asyncio
+
 import pytest
 
 from handyman.generate import generate_artifacts
-from handyman.verify.evals import _map_served_names, _typed
+from handyman.verify.evals import _map_served_names, _ToolCacheAdapter, _typed
 from handyman.verify.static import boot_check, static_check
 
 
@@ -40,6 +42,29 @@ def test_design_names_map_to_served_names(fixture_plan):
 def test_ambiguous_served_names_fail_loudly(fixture_plan):
     with pytest.raises(RuntimeError, match="cannot map"):
         _map_served_names(fixture_plan, ["Fixture_GetStationData"])
+
+
+def test_gate_adapter_marks_only_the_last_tool_cacheable():
+    class FakeMessages:
+        kwargs = None
+
+        async def create(self, **kwargs):
+            self.kwargs = kwargs
+            return "response"
+
+    class FakeClient:
+        def __init__(self):
+            self.messages = FakeMessages()
+
+    fake = FakeClient()
+    adapter = _ToolCacheAdapter(fake)
+    result = asyncio.run(
+        adapter.messages.create(model="m", tools=[{"name": "a"}, {"name": "b"}], messages=[])
+    )
+    assert result == "response"
+    sent = fake.messages.kwargs["tools"]
+    assert sent[-1]["cache_control"] == {"type": "ephemeral"}
+    assert "cache_control" not in sent[0]
 
 
 def test_expected_values_retype_to_declared_arg_types():

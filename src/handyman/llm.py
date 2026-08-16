@@ -32,6 +32,27 @@ def model_name() -> str:
     return os.environ.get("HANDYMAN_MODEL", DEFAULT_MODEL)
 
 
+# The eval gate's case model plays a consuming agent against the generated
+# tools. It is deliberately weaker and cheaper than the pipeline model:
+# descriptions that steer a weak model correctly are a *stronger* gate, at a
+# third of the per-case price. Keyed by the pipeline model's provider so a
+# reviewer's single credential always works; providers without an obvious
+# weak-tier mapping reuse the pipeline model.
+_EVAL_DEFAULTS = {
+    "bedrock": "bedrock:us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "anthropic": "anthropic:claude-haiku-4-5",
+}
+
+
+def eval_model_name() -> str:
+    """Model that answers eval cases; override via HANDYMAN_EVAL_MODEL."""
+    override = os.environ.get("HANDYMAN_EVAL_MODEL")
+    if override:
+        return override
+    provider = model_name().partition(":")[0]
+    return _EVAL_DEFAULTS.get(provider, model_name())
+
+
 def parse(prompt: str, output: type[T], *, system: str, max_tokens: int = 16000) -> T:
     """Ask the model for a schema-validated `output` instance.
 

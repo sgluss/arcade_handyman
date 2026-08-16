@@ -128,3 +128,31 @@ Honest limitation observed en route: static failures feed the design-
 revision loop, but a template defect isn't something design can fix — the
 loop was harmless yet useless here. Template made conditional; a
 no-secrets rendering test added.
+
+## Session 3 — cost discipline
+
+**Prompt (paraphrased):** "Would it be cheaper to run on GPT-5.6 Sol?" — it
+would not (Sol lists at $5/$30 per MTok vs sonnet-5's $3/$15, and an OpenAI
+switch re-opens validation), so instead: "do both prompt caching and a haiku
+eval gate."
+
+Decisions and results:
+
+1. **The eval gate's case model dropped to haiku-tier** (env-overridable,
+   provider-aware default so a single reviewer credential still works).
+   This is cheaper *and* stricter: the gate asks whether tool descriptions
+   steer a fresh consuming model correctly, and a weaker model raises that
+   bar. Replaying the committed NWS suite on haiku: **14/14 — the
+   descriptions hold up even for a small model.** The examiner authoring
+   cases stays on the pipeline model; judgment work isn't downgraded.
+2. **Bedrock prompt caching on the multi-turn surfaces.** The demo agent
+   caches its tool schema, system prompt, and growing history (the fan-out
+   demo now reports ~half its input tokens as cache reads, billed at ~10%
+   of fresh input); the eval gate marks its per-case repeated tool schema
+   cacheable via a small client adapter. Single-shot stages (design,
+   examiner) get nothing from caching and correctly skip it.
+3. **Reproducibility note:** Bedrock's Converse and InvokeModel APIs
+   enforced marketplace entitlement differently for haiku — Converse worked
+   immediately while InvokeModel (the anthropic SDK's path) returned a
+   misleading marketplace-authorization error until a marketplace-authorized
+   principal performed one first invoke to materialize the subscription.

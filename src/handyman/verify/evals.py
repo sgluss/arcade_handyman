@@ -29,7 +29,7 @@ from arcade_evals.loaders import clear_tools_cache
 from openai import AsyncOpenAI
 
 from handyman.ir import EvalSuite, ToolPlan
-from handyman.llm import model_name, parse
+from handyman.llm import eval_model_name, parse
 
 EXAMINER_SYSTEM = """\
 You are an evaluation author for MCP tool servers. You see only the consumer
@@ -150,8 +150,34 @@ async def run_eval_suite(suite: EvalSuite, plan: ToolPlan, server_path: Path) ->
         )
 
     client, model_id, provider = _gate_runner()
+    if provider == "anthropic":
+        client = _ToolCacheAdapter(client)
     results = await arcade_suite.run(client, model=model_id, provider=provider)
     return _report(results)
+
+
+class _ToolCacheAdapter:
+    """Duck-typed stand-in for the gate's anthropic-style client.
+
+    arcade_evals re-sends the identical tool schema and system prompt on
+    every case; marking the last tool cacheable lets the provider serve that
+    stable prefix from cache across the suite's dozens of calls (reads bill
+    at ~10% of fresh input). Schemas below the model's minimum cacheable
+    prefix leave the marker silently inert — never harmful.
+    """
+
+    def __init__(self, client: Any):
+        self._client = client
+        self.messages = self
+
+    async def create(self, **kwargs: Any) -> Any:
+        tools = kwargs.get("tools")
+        if tools:
+            kwargs["tools"] = [
+                *tools[:-1],
+                {**tools[-1], "cache_control": {"type": "ephemeral"}},
+            ]
+        return await self._client.messages.create(**kwargs)
 
 
 def _typed(value: str, py_type: str | None) -> Any:
@@ -183,7 +209,7 @@ def _gate_runner() -> tuple[Any, str, str]:
     Messages API over AWS transport — which arcade_evals accepts unchanged
     because it only duck-types `client.messages.create`.
     """
-    name = model_name()
+    name = eval_model_name()
     provider, _, model_id = name.partition(":")
     if provider == "bedrock" and "anthropic" in model_id:
         return AsyncAnthropicBedrock(), model_id, "anthropic"
