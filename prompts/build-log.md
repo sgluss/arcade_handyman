@@ -231,3 +231,22 @@ optimization mechanism. At this project's scale attribution wins and the
 profiles stay, but the tension goes straight into the feature pitch: a
 tool platform should give per-toolkit cost attribution without making you
 give up caching.
+
+## Session 5 — writeup and submission prep
+
+**Prompt (paraphrased):** "Draft WRITEUP.md from the decision themes
+accumulated during the build — a tradeoffs writeup plus the feature pitch,
+not a changelog — then the video script and the final-review checklist."
+
+WRITEUP.md distills the build into its decisions (hybrid-by-stage, the
+typed IR, template codegen over free-form generation, examiner blindness,
+what the live failures forced, the measured attribution-versus-caching
+tradeoff), the declared cut list, and the feature suggestion for Arcade.
+Every number cited was re-checked against the committed artifacts
+(tool counts, rejection counts, smoke and selection scores, the one
+tolerated smoke call) before writing, and the draft was human-reviewed
+before landing. The video script (five beats, ≤3 minutes) and the
+submission checklist stay in local working notes; the Arcade cloud-deploy
+flourish remains cut for lack of an API key, with the project's
+Arcade-nativeness (arcade-mcp runtime, arcade_evals gate, typed error
+taxonomy) made explicit in the writeup's close instead.
