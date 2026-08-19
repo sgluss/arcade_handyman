@@ -217,23 +217,12 @@ inside the assignment's ~6 hours. But everything that made it hard is
 platform-shaped, which is exactly why it should be Arcade's rather than
 every user's weekend project:
 
-- **Auth is the wall a local pipeline cannot climb.** My generator stops at
-  OAuth by necessity. Arcade already owns the managed-auth machinery
-  (`requires_auth`, provider integrations) — a generation pipeline inside
-  the platform can map declared OAuth schemes onto real flows instead of
-  rejecting them. That single difference moves generation from "keyless
-  public APIs" to "the APIs people actually need."
-- **Evals as catalog trust, not private diligence.** Toolkit quality is
-  invisible at browse time today. A tiered publish gate — static checks →
-  execution smoke → tool-selection evals → judged workflow evals on
-  realistic tasks (the tier I cut) — attached to every catalog listing
-  turns "this toolkit works" from a claim into shipped evidence:
-  `plan.json` and `evals.json` are small previews of what that page could
-  show. Arcade already has the evals framework; hosting the harness and
-  publishing the scores is the missing product.
-- **Per-toolkit cost attribution, without the caching tax.** Builders will
-  ask what each toolkit costs to run. I measured the naive answer's price:
-  attributing at the model-provider layer (Bedrock application profiles)
-  silently disables prompt caching. A platform that meters at its own
-  gateway can attribute per toolkit *and* keep caching — an operational
-  feature the model providers currently make an either/or.
+- My generator stops at OAuth by necessity. Arcade already owns managed
+  auth (`requires_auth`, provider integrations), so a pipeline inside the
+  platform can map declared OAuth schemes onto real flows instead of
+  rejecting them: from "keyless public APIs" to "the APIs people need."
+- Toolkit quality is invisible at browse time. Attach the tiered publish
+  gate — static → execution smoke → selection evals → judged workflow
+  evals (the tier I cut) — to every listing, make this evidence visible to the end user. 
+  The evals framework exists, and hosting the
+  harness and publishing the scores is the missing product.
