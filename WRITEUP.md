@@ -110,7 +110,7 @@ answer beats a broken tool when an API's envelope drifts).
 
 A generated server is not "done" when it renders; it is done when it
 survives four checks, ordered cheapest-first: static (compile +
-correctness-only lint), boot (serves the planned tools over stdio),
+correctness-only lint), boot (starts and answers a tool listing over stdio),
 execution smoke (every tool called once against the live API), and
 selection evals (Arcade's `EvalSuite` scoring a fresh model's tool choices
 against the live server). Failures from any stage become prose fed back to
@@ -159,10 +159,13 @@ log; the short version:
 failed 3 of 12 cases — gate bugs, not server bugs — and diagnosing them
 produced three permanent fixes: the string-vs-float typing mismatch above,
 examiner cases that implied two tool calls while expecting one (the examiner
-now has a one-intent-per-message rule), and an upstream caching bug in
-`arcade_evals` where stdio tool listings are memoized by command line,
-silently scoring every revision attempt against the first attempt's server. The gate now clears that cache
-per run; the bug is worth an upstream issue, and I'd file it.
+now has a one-intent-per-message rule), and a staleness hazard in
+`arcade_evals`'s stdio tool-listing cache: listings are deliberately
+memoized by command line, but a regenerating pipeline rewrites the file
+behind an identical command, so every revision attempt was silently scored
+against the first attempt's server. The gate now clears that cache per run
+through the framework's own `clear_tools_cache()`; the upstream suggestion
+is an invalidation signal (file mtime in the cache key), not a bug report.
 
 **Then the gate passed 14/14 — and the demo still crashed.** The design had
 honestly declared NWS's `API-Key` scheme as an optional secret with no
@@ -295,7 +298,8 @@ need tools most, hand-authoring toolkits scales with engineering headcount,
 and generation gated by evals scales with compute while keeping the
 catalog's quality bar visible instead of assumed. I would also contribute
 two small findings from this build upstream regardless: the `arcade_evals`
-stdio listing-cache bug (real, reproducible, one-line workaround), and the
+stdio listing-cache staleness hazard for regenerating pipelines (real,
+reproducible; the fix is an invalidation signal in the cache key), and the
 ergonomics of arcade-mcp masking unhandled exceptions — surfacing typed
 tool errors by default would improve every generated and hand-written
 server alike.
