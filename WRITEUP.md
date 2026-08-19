@@ -9,9 +9,9 @@ including which prompt produced which decision, is in
 
 ## Why this project
 
-My interviews with Arcade kept returning to one topic: agentic generation of
-MCP servers and tools. It is also the honest version of "a real problem in
-your life": the APIs I actually want my agents to use are mostly niche ones
+My interview with arcade introduced me to an interesting challenge: agentic generation of
+MCP servers and tools. It's great when MCP servers exist, but often 
+the APIs I actually want my agents to use are mostly niche ones
 with no MCP server, and hand-writing a good one takes hours per API. So the
 project is a meta-agent. Handyman turns an API description into a working,
 eval-gated Arcade MCP server, and a deliberately thin consumer agent then
@@ -24,9 +24,9 @@ point→gridpoint indirection is the tool-design showcase) and Hacker News
 (docs-page ingest; the generality proof, since the long tail of useful APIs
 has no spec at all).
 
-## The architecture bet: hybrid by stage
+## The Architecture: hybrid by stage
 
-The organizing rule: **use an LLM exactly where the work is judgment, keep
+The organizing rule is: **use an LLM exactly where the work is judgment, keep
 everything checkable deterministic, and verify at the boundary between.**
 
 - *Judgment stages* — reading human docs into an inventory, deciding which
@@ -39,9 +39,9 @@ everything checkable deterministic, and verify at the boundary between.**
   the design decision), `EvalSuite` (how to check it reads correctly).
 
 No model ever free-writes server code, and no deterministic stage ever
-guesses at judgment. The payoff shows in the two ingest paths: OpenAPI is
+guesses at judgment. This is evident in the two ingest paths: OpenAPI is
 parsed deterministically, a docs page is read by a model, and both emit the
-same `APISpec` — the pipeline downstream cannot tell which one produced its
+same `APISpec`, so the pipeline downstream cannot tell which one produced its
 input.
 
 ## Decisions and what they cost
@@ -100,7 +100,7 @@ and recorded 64 rejections with one-clause reasons in `plan.json`. The
 rejections are a first-class artifact — "what we chose not to build" is most
 of what tool design is.
 
-One deliberate asymmetry is worth defending: between chain steps, a missing
+One deliberate asymmetry: between chain steps, a missing
 extract path fails loudly (a wrong path there means the wiring is broken —
 an authoring defect, raised as Arcade's fatal error kind), while the final
 response pruning is lenient and falls back to the full payload (a bigger
@@ -144,66 +144,10 @@ regeneration the design carried only the User-Agent scheme — NWS never
 actually enforces its declared `API-Key`, and every call in the evidence ran
 keyless — so the required-secret path is proven by the generator's fixture
 tests instead of a live target. Both flow through the same generic
-classifier — nothing in the pipeline special-cases NWS.
+classifier, which is nothing in the pipeline special-cases NWS.
 OAuth schemes are recorded in the IR but deliberately not generated;
 Arcade's managed `requires_auth` is the right home for that, and wiring
 OAuth blind from a spec is a product decision, not codegen.
-
-## What the live runs changed
-
-The pipeline was built stage by stage against live APIs, and the sharpest
-design decisions came from three failures. The long version is in the build
-log; the short version:
-
-**The gate caught bad evals before bad tools.** The first full NWS run
-failed 3 of 12 cases — gate bugs, not server bugs — and diagnosing them
-produced three permanent fixes: the string-vs-float typing mismatch above,
-examiner cases that implied two tool calls while expecting one (the examiner
-now has a one-intent-per-message rule), and a staleness hazard in
-`arcade_evals`'s stdio tool-listing cache: listings are deliberately
-memoized by command line, but a regenerating pipeline rewrites the file
-behind an identical command, so every revision attempt was silently scored
-against the first attempt's server. The gate now clears that cache per run
-through the framework's own `clear_tools_cache()`; the upstream suggestion
-is an invalidation signal (file mtime in the cache key), not a bug report.
-
-**Then the gate passed 14/14 — and the demo still crashed.** The design had
-honestly declared NWS's `API-Key` scheme as an optional secret with no
-default, and the generator rendered it as a `None` request header, which
-httpx rejects. A selection gate cannot see an execution bug: that is the
-exact edge of the declared scope cut "evals test tool selection, not
-execution correctness," demonstrated live. It motivated the third gate
-stage: execution smoke, which calls every tool once with arguments taken
-from the examiner's own cases, retyped exactly as the eval runner types
-them. A tool that cannot survive one real call has no business being scored
-on its prose.
-
-**Smoke's first replay convicted a shipped server.** Run standalone against
-the previously committed servers, smoke failed 3 of 7 NWS tools on the
-exact server that had passed selection 14/14: a latent chain bug (the
-extract path needed list indexing the walker didn't have — and the design's
-chosen path pointed at a station URL rather than its identifier), plus two
-tools whose fabricated test identifiers could only ever draw 404s and 500s.
-The fixes became rules. The dot-path walkers learned numeric list indexing.
-Generated servers now raise Arcade's typed error taxonomy — arcade-mcp
-masks plain exceptions as "unhandled error," which had been hiding the
-template's careful HTTP error messages from calling agents — and smoke
-reads the machine-readable error kind from response metadata instead of
-parsing prose. And smoke gained a tolerance rule: a single-call tool that
-gets an HTTP error *answer* to a fabricated identifier counts as wired (the
-request formed, sent, and parsed; the examiner is blind to the API, so its
-IDs are inventions), while chains get no tolerance past live data and auth
-errors always fail. Tolerated calls are recorded as such in the evidence —
-the committed NWS evidence contains exactly one.
-
-Both targets were then regenerated through the full four-stage gate: NWS
-converged on attempt two (smoke 5/5, selection 12/12) after attempt one's
-single selection failure fed a revision; Hacker News passed on attempt one
-(smoke 8/8, selection 17/17). One revision-loop guardrail also came from
-watching it run: given failure feedback, the first design revision removed
-tools rather than sharpening their wording, so the revision instructions
-now state that argument-format failures are description problems, not
-grounds for dropping a tool.
 
 ## Operational choices
 
@@ -293,8 +237,3 @@ every user's weekend project:
   silently disables prompt caching. A platform that meters at its own
   gateway can attribute per toolkit *and* keep caching — an operational
   feature the model providers currently make an either/or.
-
-The rationale is catalog economics: the long tail of APIs is where agents
-need tools most, hand-authoring toolkits scales with engineering headcount,
-and generation gated by evals scales with compute while keeping the
-catalog's quality bar visible instead of assumed. 
