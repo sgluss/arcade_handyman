@@ -63,13 +63,15 @@ not provided.
 """
 
 REVISION_PREAMBLE = """\
-A previous version of this plan failed its evaluation gate. Failing cases are
-listed below — an evaluator LLM, seeing only your tool names/descriptions/
-arguments, chose the wrong tool or wrong arguments. Revise the plan so a fresh
-model would choose correctly: sharpen names, disambiguate descriptions, adjust
-arguments. Keep the overall tool surface unless a failure demands otherwise —
-argument-value or format failures are description problems; fix the wording
-rather than removing the tool.
+A previous version of this plan failed its verification gate; the failure
+detail is below. Structural failures (plan validation, static checks, live
+execution smoke) name an exact defect — correct that defect. Selection
+failures mean an evaluator LLM, seeing only your tool names/descriptions/
+arguments, chose the wrong tool or wrong arguments — sharpen names,
+disambiguate descriptions, adjust arguments so a fresh model chooses
+correctly. Keep the overall tool surface unless a failure demands otherwise;
+argument-value or format failures are description problems, so fix the
+wording rather than removing the tool.
 
 """
 

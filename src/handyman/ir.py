@@ -100,7 +100,7 @@ class ParamBinding(BaseModel):
     """Assigns a value to one API parameter of a call step.
 
     `value` is a template over tool arguments and earlier extracts, e.g.
-    "{latitude},{longitude}" or "{point_data[gridId]}". Templates keep the
+    "{latitude},{longitude}" or "{grid_id}". Templates keep the
     plan declarative: the LLM chooses the wiring, deterministic code runs it.
     """
 
@@ -154,14 +154,17 @@ class ToolSpec(BaseModel):
 class SecretSpec(BaseModel):
     """A credential or identifying value the generated server needs at runtime.
 
-    Maps an environment variable to the request header/query parameter that
-    carries it. `required=False` with a default covers courtesy schemes like
-    NWS's User-Agent, which should not block a zero-config demo.
+    Maps an environment variable to the request header that carries it.
+    Query-carried credentials are out of scope for generation — like OAuth on
+    `AuthScheme`, recording them without codegen support would silently
+    mis-send them — and both demo APIs are keyless, so only the header path
+    is generated. `required=False` with a default covers courtesy schemes
+    like NWS's User-Agent, which should not block a zero-config demo.
     """
 
     env_var: str = Field(description="UPPER_SNAKE name, prefixed with the server name")
-    param_name: str = Field(description="Header or query parameter the value is sent as")
-    location: Literal["header", "query"] = "header"
+    param_name: str = Field(description="Header the value is sent as")
+    location: Literal["header"] = "header"
     required: bool = True
     default: str | None = Field(default=None, description="Fallback when not required")
     description: str = ""

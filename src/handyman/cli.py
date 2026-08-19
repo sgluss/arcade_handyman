@@ -110,9 +110,11 @@ def run_pipeline(args: argparse.Namespace) -> Path:
     auth = ", ".join(f"{a.kind}:{a.name}" for a in spec.auth) or "none"
     _say(f"{spec.name} — {len(spec.endpoints)} endpoints, auth: {auth}")
 
+    attempts = max(1, args.attempts)
+    server_path: Path | None = None
     feedback: str | None = None
-    for attempt in range(1, args.attempts + 1):
-        _stage("DESIGN", f"attempt {attempt}/{args.attempts}" + (" (revision)" if feedback else ""))
+    for attempt in range(1, attempts + 1):
+        _stage("DESIGN", f"attempt {attempt}/{attempts}" + (" (revision)" if feedback else ""))
         plan = design_toolplan(spec, guidance=args.guidance, feedback=feedback)
         _describe_plan(plan)
 
@@ -170,6 +172,8 @@ def run_pipeline(args: argparse.Namespace) -> Path:
             return server_path
         feedback = report.feedback()
 
+    if server_path is None:
+        sys.exit(f"every design attempt failed before a server could be rendered — {feedback}")
     _stage("WARNING", "emitted WITHOUT a passing eval gate — see evals.json for failing cases")
     return server_path
 
@@ -219,7 +223,10 @@ def _args_line(args: dict) -> str:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="handyman", description=__doc__)
+    parser = argparse.ArgumentParser(
+        prog="handyman", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     commands = parser.add_subparsers(dest="command", required=True)
 
     generate = commands.add_parser("generate", help="Generate an MCP server from an API")
@@ -236,12 +243,12 @@ def _parse_args() -> argparse.Namespace:
 
     demo = commands.add_parser("demo", help="Run the consumer agent against a generated server")
     demo.add_argument("server", help="Server name under generated/, or a path to a server.py")
-    demo.add_argument("--task", help="What to ask (defaults exist for nws and hackernews)")
+    demo.add_argument("--task", help="What to ask (defaults exist for weather_gov and hackernews)")
     return parser.parse_args()
 
 
 def _stage(name: str, detail: str = "") -> None:
-    print(f"\n=== {name} ═ {detail}" if detail else f"\n=== {name}")
+    print(f"\n=== {name} — {detail}" if detail else f"\n=== {name}")
 
 
 def _say(text: str) -> None:
