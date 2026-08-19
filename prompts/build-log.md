@@ -73,6 +73,9 @@ Decisions:
    Bedrock client, which `arcade_evals` accepts unchanged because it
    duck-types the Messages API. The reviewer-key story improves: any one of
    AWS creds, an Anthropic key, or an OpenAI key runs the whole pipeline.
+   (Later found: the OpenAI pipeline path cannot actually resolve —
+   arcade-mcp[evals] pins openai==1.82.1 while pydantic-ai's OpenAI extra
+   needs >=2.45 — so the shipped claim is Bedrock or Anthropic.)
 4. **Tracing: Logfire, token-gated.** With `LOGFIRE_TOKEN` set, every
    pipeline stage and the demo agent stream spans; without it, tracing is a
    no-op — the reviewer path stays zero-config.

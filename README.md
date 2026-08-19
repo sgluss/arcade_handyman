@@ -39,7 +39,7 @@ the failing cases written next to the code.
 ## Quickstart
 
 Prerequisites: [uv](https://docs.astral.sh/uv/), plus **one** LLM credential
-of your choice — AWS/Bedrock, Anthropic, or OpenAI (see below).
+of your choice — AWS/Bedrock or Anthropic (see below).
 
 ```bash
 git clone https://github.com/sgluss/arcade_handyman.git && cd arcade_handyman
@@ -93,8 +93,8 @@ generated/weather_gov/
 ├── server.py    the arcade-mcp server: one tool per planned capability,
 │                chains hidden behind single tools, typed error taxonomy,
 │                and the regeneration command in its header
-├── plan.json    the design stage's full decision — including every endpoint
-│                it rejected, with reasons
+├── plan.json    the design stage's full decision — including its recorded
+│                rejections, each with a reason
 ├── evals.json   the gate's evidence: examiner cases, execution-smoke
 │                outcomes, and tool-selection scores against the live server
 └── README.md    provenance, tool table, secrets table, rejected endpoints
@@ -108,7 +108,8 @@ why, and what was verified and how, kept next to the code they justify.
 Four checks, cheapest first:
 
 1. **Static** — the file compiles and passes correctness-only lint rules.
-2. **Boot** — the server starts over stdio and serves the planned tools.
+2. **Boot** — the server starts over stdio and answers a tool listing
+   (plan-vs-served name mapping happens in the stages that use it).
 3. **Execution smoke** — every tool is called once against the live API,
    with typed arguments taken from the examiner's cases. Selection evals
    can't see execution bugs (a tool can read perfectly and crash on its
@@ -125,12 +126,13 @@ design-revision loop.
 
 Every LLM stage follows `HANDYMAN_MODEL` — a
 [pydantic-ai model string](https://ai.pydantic.dev/models/), so
-`bedrock:...`, `anthropic:...`, and `openai:...` are drop-ins with the
-matching credential. The eval gate's consumer model defaults to haiku-tier
-on Bedrock and Anthropic (OpenAI has no obvious weak-tier mapping, so it
-reuses the pipeline model unless `HANDYMAN_EVAL_MODEL` says otherwise):
-cheaper, and a *stricter* test — descriptions that steer a small model steer
-anything.
+`bedrock:...` and `anthropic:...` are drop-ins with the matching credential.
+(`openai:...` strings are wired throughout but cannot currently run:
+`arcade-mcp[evals]` pins `openai==1.82.1` while pydantic-ai's OpenAI
+support needs `openai>=2.45` — an upstream pin conflict, documented rather
+than overridden.) The eval gate's consumer model defaults to haiku-tier
+(override with `HANDYMAN_EVAL_MODEL`): cheaper, and a *stricter* test —
+descriptions that steer a small model steer anything.
 
 A full regeneration of a target costs roughly $1 on claude-sonnet-5
 (design + examiner), with the gate on haiku. Prompt caching is wired at

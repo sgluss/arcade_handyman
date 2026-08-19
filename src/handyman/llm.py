@@ -6,9 +6,11 @@ consumes free-form model prose — that discipline is what makes the LLM stages
 retryable and unit-testable like any other function.
 
 pydantic-ai owns the provider mechanics (transport, structured output,
-validation retries), so the model is pure configuration: any of its model
-strings works — "bedrock:...", "anthropic:...", "openai:..." — and switching
-providers never touches code.
+validation retries), so the model is pure configuration: "bedrock:..." and
+"anthropic:..." are proven drop-ins, and switching providers never touches
+code. ("openai:..." is wired identically but blocked today by an upstream
+pin conflict — arcade-mcp[evals] pins openai==1.82.1, pydantic-ai's OpenAI
+support needs >=2.45; see the README.)
 """
 
 import os

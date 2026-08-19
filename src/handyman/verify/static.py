@@ -2,8 +2,9 @@
 
 Template-based generation makes most static defects impossible by
 construction; these checks exist to keep that claim honest rather than
-asserted. `boot_check` doubles as the source of truth for served tool names,
-which the eval stage needs (arcade-mcp namespaces tools, e.g. `get_forecast`
+asserted. `boot_check` proves the file starts as a real MCP server and
+answers a tool listing; the later verify stages resolve served names over
+their own stdio sessions (arcade-mcp namespaces tools, e.g. `get_forecast`
 on server `nws` is served as `Nws_GetForecast`).
 """
 

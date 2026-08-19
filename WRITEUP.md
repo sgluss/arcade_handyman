@@ -205,8 +205,12 @@ grounds for dropping a tool.
 ## Operational choices
 
 **Provider is configuration, not code.** Every judgment stage follows one
-pydantic-ai model string (`bedrock:…`, `anthropic:…`, `openai:…`), so a
-reviewer needs any one credential. The eval gate is the interesting seam:
+pydantic-ai model string (`bedrock:…`, `anthropic:…`), so a reviewer needs
+either credential. A third string, `openai:…`, is wired identically but
+cannot currently run: `arcade-mcp[evals]` pins `openai==1.82.1` while
+pydantic-ai's OpenAI support requires `openai>=2.45` — an upstream pin
+conflict I chose to document rather than override. The eval gate is the
+interesting seam:
 `arcade_evals` drives a provider SDK itself, and Bedrock-hosted Claude rides
 through the anthropic SDK's Bedrock client, which the framework accepts
 unchanged because it only duck-types the Messages API.
