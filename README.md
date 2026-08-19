@@ -42,7 +42,7 @@ Prerequisites: [uv](https://docs.astral.sh/uv/), plus **one** LLM credential
 of your choice — AWS/Bedrock or Anthropic (see below).
 
 ```bash
-git clone https://github.com/sgluss/arcade_handyman.git && cd arcade_handyman
+git clone https://github.com/sgluss/mcp_handyman.git && cd mcp_handyman
 uv sync
 cp .env.example .env        # pick a model line, add your credential
 ```

@@ -261,10 +261,11 @@ are deliberately untraced — they must stay zero-dependency subprocesses.
 ## The feature suggestion: self-serve, eval-gated toolkit generation
 
 **Arcade should let anyone turn an API description into a published,
-eval-gated toolkit — "bring your API" as a platform feature.** Paste an
-OpenAPI URL or a docs page; an agentic pipeline designs the tool surface,
+eval-gated toolkit — "bring your API" as a platform feature.** Users should be able to
+paste an OpenAPI URL or a docs page, in the same way that handyman can ingest those resources.
+An agentic pipeline then designs the tool surface,
 generates the server against Arcade's SDK, and runs it through a tiered
-publish gate; what lands in the catalog carries its evidence.
+publish gate. Finally, the resulting resources are made available to the user.
 
 This take-home is the feasibility argument: one person built the skeleton —
 ingest, design, codegen, a four-stage gate, live-verified on two real APIs —
