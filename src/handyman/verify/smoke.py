@@ -22,7 +22,9 @@ from the live API's own responses, so an upstream error mid-chain indicts
 the wiring (a chain's first step can also hit this for fabricated inputs; we
 accept the occasional extra revision rather than guess which step answered).
 Auth errors always fail — with real credentials loaded, a 401 indicts the
-credential plumbing, not the fabricated input.
+credential plumbing, not the fabricated input. The unmapped kind also always
+fails: it covers oddities like a success status with an unparseable body,
+which indicts the request shape, not the input.
 """
 
 import asyncio
@@ -110,7 +112,7 @@ async def _call(
         if (
             len(tool.steps) == 1
             and kind.startswith("UPSTREAM_")
-            and kind != "UPSTREAM_RUNTIME_AUTH_ERROR"
+            and kind not in ("UPSTREAM_RUNTIME_AUTH_ERROR", "UPSTREAM_RUNTIME_UNMAPPED")
         ):
             return SmokeOutcome(
                 tool.name, args, ok=True,

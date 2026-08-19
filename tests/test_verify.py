@@ -103,6 +103,17 @@ def local_api():
             elif path.startswith("/stations/MISSING/"):
                 self.send_error(404)
                 return
+            elif path.startswith("/stations/LOCKED/"):
+                self.send_error(401)
+                return
+            elif path.startswith("/stations/BROKEN/"):  # 200 with a non-JSON body
+                body = b"<html>maintenance page</html>"
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             elif path.startswith("/stations/"):
                 payload = {"properties": {"data": [{"reading": 1}]}}
             else:
@@ -192,6 +203,45 @@ def test_smoke_tolerates_upstream_errors_for_single_call_lookups(fixture_plan, s
     lookup = {o.tool: o for o in outcomes}["get_station_data"]
     assert lookup.ok
     assert "tolerated UPSTREAM_RUNTIME_NOT_FOUND" in lookup.detail
+
+
+def test_smoke_never_tolerates_auth_errors(fixture_plan, smoke_server):
+    """With real credentials loaded, a 401 indicts the credential plumbing —
+    the fabricated-input tolerance must not paper over it."""
+    suite = EvalSuite(
+        cases=[
+            EvalCase(
+                user_message="Show me the readings from station LOCKED.",
+                expected_tool="get_station_data",
+                expected_args=[ExpectedArg(name="station", value="LOCKED", match="exact")],
+            ),
+            _smoke_suite().cases[1],
+        ]
+    )
+    outcomes = smoke_check(suite, fixture_plan, smoke_server)
+    locked = {o.tool: o for o in outcomes}["get_station_data"]
+    assert not locked.ok
+    assert "401" in locked.detail
+
+
+def test_smoke_never_tolerates_unparseable_success_bodies(fixture_plan, smoke_server):
+    """A success status with a non-JSON body maps to the unmapped upstream
+    kind; that indicts the request shape, not the examiner's fabricated
+    input, so it must fail the gate."""
+    suite = EvalSuite(
+        cases=[
+            EvalCase(
+                user_message="Show me the readings from station BROKEN.",
+                expected_tool="get_station_data",
+                expected_args=[ExpectedArg(name="station", value="BROKEN", match="exact")],
+            ),
+            _smoke_suite().cases[1],
+        ]
+    )
+    outcomes = smoke_check(suite, fixture_plan, smoke_server)
+    broken = {o.tool: o for o in outcomes}["get_station_data"]
+    assert not broken.ok
+    assert "non-JSON" in broken.detail
 
 
 def test_smoke_never_tolerates_upstream_errors_mid_chain(fixture_plan, smoke_server):
