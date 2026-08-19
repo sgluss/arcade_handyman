@@ -5,8 +5,12 @@ ToolPlan; letting a model free-write server code would trade away the three
 properties that matter for generated artifacts — syntactic validity by
 construction, a uniform reviewable style, and diffable regeneration. So the
 skeleton lives in a Jinja template, each tool body is assembled here from the
-plan, and every LLM-authored string is inserted as a validated identifier, a
-Python literal, or an escaped docstring — never spliced in as code.
+plan, and every LLM-authored string enters the file through a checked door:
+identifiers are validated (Python keywords rejected), argument defaults must
+parse as literals or are demoted to string literals, docstrings are escaped,
+and binding templates may carry only known placeholder names plus literal
+text that cannot escape an f-string. The threat model is a careless model,
+not a malicious one — but none of these doors accepts code.
 
 Plan mistakes that templates can catch (an unknown endpoint, a binding that
 references a nonexistent argument) raise `GenerationError` with a message
@@ -14,6 +18,7 @@ written to be fed back to the design stage.
 """
 
 import ast
+import keyword
 import re
 import textwrap
 from pathlib import Path
@@ -24,6 +29,7 @@ from handyman.ir import APISpec, CallStep, Endpoint, ToolPlan, ToolSpec
 
 _PLACEHOLDER = re.compile(r"\{([^{}]+)\}")
 _IDENT = re.compile(r"^[a-z_][a-z0-9_]*$")
+_UNSAFE_LITERAL = re.compile(r'["\\{}\n]')
 
 
 class GenerationError(Exception):
@@ -62,6 +68,9 @@ def render_server(
 
     env = Environment(loader=PackageLoader("handyman", "templates"), keep_trailing_newline=True)
     env.filters["py"] = repr
+    # The module docstring can't hold a repr'd string, so escaping the only
+    # terminator keeps LLM text from closing it (same policy as _docstring).
+    env.filters["doc"] = lambda text: text.replace('"""', "'''")
     template = env.get_template("server.py.j2")
     return template.render(
         plan=plan,
@@ -184,6 +193,7 @@ def _step_lines(
         template = bindings.pop(param_name)
         _check_refs(template, scope, tool.name)
         path_template = path_template.replace("{" + param_name + "}", template)
+    _check_embeddable(path_template, tool.name, f"the path template for '{endpoint.id}'")
     path_expr = f'f"{path_template}"' if _PLACEHOLDER.search(path_template) else repr(path_template)
 
     # Query and header parameters.
@@ -217,8 +227,11 @@ def _step_lines(
 
 def _value_expr(template: str, refs: list[str]) -> str:
     """A binding that is exactly one placeholder passes the argument through
-    with its type intact; anything else becomes an f-string."""
-    if template == "{" + refs[0] + "}" and len(refs) == 1:
+    with its type intact; a placeholder-free binding is a plain constant;
+    anything else becomes an f-string."""
+    if not refs:
+        return repr(template)
+    if len(refs) == 1 and template == "{" + refs[0] + "}":
         return refs[0]
     return f'f"{template}"'
 
@@ -247,13 +260,30 @@ def _check_refs(template: str, scope: dict[str, str], tool_name: str) -> list[st
             f"tool '{tool_name}': binding '{template}' references unknown name(s) "
             f"{unknown}; known names are {sorted(scope)}"
         )
+    _check_embeddable(template, tool_name, f"binding '{template}'")
     return refs
+
+
+def _check_embeddable(template: str, tool_name: str, what: str) -> None:
+    """Literal text in a binding or path lands verbatim inside a generated
+    f-string, where a quote, backslash, stray brace, or newline could turn
+    data into code — so those characters are rejected outright."""
+    unsafe = sorted(set(_UNSAFE_LITERAL.findall(_PLACEHOLDER.sub("", template))))
+    if unsafe:
+        raise GenerationError(
+            f"tool '{tool_name}': {what} contains {unsafe} outside a placeholder; "
+            "these characters cannot be safely embedded in generated code"
+        )
 
 
 def _ident(name: str, context: str) -> str:
     candidate = re.sub(r"[^a-z0-9_]+", "_", name.strip().lower()).strip("_")
     if not candidate or not _IDENT.match(candidate):
         raise GenerationError(f"cannot derive a Python identifier for {context}: {name!r}")
+    if keyword.iskeyword(candidate):
+        raise GenerationError(
+            f"{context} {name!r} normalizes to the Python keyword '{candidate}'; rename it"
+        )
     return candidate
 
 

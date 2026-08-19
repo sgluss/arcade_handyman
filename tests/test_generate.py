@@ -1,6 +1,7 @@
 """Generator tests: the rendered server must be valid Python, contain the
 plumbing the plan calls for, and actually boot as an MCP server."""
 
+import ast
 import asyncio
 import os
 import sys
@@ -103,12 +104,37 @@ def test_no_secret_plans_render_without_unused_imports(fixture_plan, fixture_spe
         (lambda plan: plan.tools[1].steps[0].bindings.pop(0), "is not bound"),
         (lambda plan: plan.tools[0].steps[0].bindings.append(
             ParamBinding(param="units", value="{nonsense}")), "unknown name"),
+        # a stray quote in a binding — benign typo or crafted splice — must be
+        # rejected before it can reach an f-string in generated code
+        (lambda plan: plan.tools[0].steps[0].bindings.append(
+            ParamBinding(param="units", value='say "{units}"')), "safely embedded"),
+        (lambda plan: plan.tools[0].steps[0].bindings.append(
+            ParamBinding(param="units", value='{units}" + evil() + "')), "safely embedded"),
+        (lambda plan: setattr(plan.tools[0].args[0], "name", "from"), "keyword"),
     ],
 )
 def test_plan_defects_fail_fast(fixture_plan, fixture_spec, mutate, message_fragment):
     mutate(fixture_plan)
     with pytest.raises(GenerationError, match=message_fragment):
         render_server(fixture_plan, fixture_spec, source="tests/fixture")
+
+
+def test_constant_bindings_render_as_string_literals(fixture_plan, fixture_spec):
+    """A placeholder-free binding is a constant the design chose; it must
+    become a quoted literal, never code (and never crash the run)."""
+    fixture_plan.tools[0].steps[0].bindings.append(ParamBinding(param="units", value="si"))
+    source = render_server(fixture_plan, fixture_spec, source="tests/fixture")
+    compile(source, "server.py", "exec")
+    assert "params['units'] = 'si'" in source
+
+
+def test_hostile_module_docstring_text_stays_data(fixture_plan, fixture_spec):
+    """Server-level instructions are LLM text placed inside the module
+    docstring; a triple quote in them must not escape into module-level code."""
+    fixture_plan.instructions = 'Do this. """\nimport os; os.system("boom")\n_ = """'
+    source = render_server(fixture_plan, fixture_spec, source="tests/fixture")
+    compile(source, "server.py", "exec")
+    assert "import os" in ast.get_docstring(ast.parse(source))  # trapped as text
 
 
 def test_generated_server_boots_and_lists_tools(fixture_plan, fixture_spec, tmp_path):

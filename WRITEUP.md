@@ -72,15 +72,17 @@ three properties that matter most for generated artifacts: syntactic
 validity by construction, one uniform reviewable style, and diffable
 regeneration.
 
-LLM-authored strings enter the file as validated identifiers, Python
-literals, or escaped docstrings — never spliced in as code. Proposed
-argument defaults are admitted only if they parse as pure Python literals;
-anything else is demoted to a string literal. Binding templates may only
-reference argument and extract names that exist, and plan defects the
-template can catch (an unknown endpoint, an unbound path parameter) raise
-errors written to be fed back to the design stage. The threat model here is
-a careless model, not a malicious one — the checks exist to catch sloppy
-plans deterministically, before anything runs.
+LLM-authored strings enter the file through checked doors, never as code:
+identifiers are validated and Python keywords rejected; proposed argument
+defaults are admitted only if they parse as pure Python literals, anything
+else being demoted to a string literal; docstrings are escaped; and binding
+templates may reference only argument and extract names that exist, with
+their literal text restricted to characters that cannot escape an f-string.
+Plan defects the generator catches (an unknown endpoint, an unbound path
+parameter, an unsafe binding) raise errors written to be fed back to the
+design stage. The threat model here is a careless model, not a malicious
+one — the checks exist to catch sloppy plans deterministically, before
+anything runs.
 
 ### Tools are designed, not wrapped
 
