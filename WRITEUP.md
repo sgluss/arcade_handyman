@@ -261,7 +261,7 @@ are deliberately untraced — they must stay zero-dependency subprocesses.
 ## The feature suggestion: self-serve, eval-gated toolkit generation
 
 **Arcade should let anyone turn an API description into a published,
-eval-gated toolkit — "bring your API" as a platform feature.** Users should be able to
+eval-gated toolkit: "bring your API" as a platform feature.** Users should be able to
 paste an OpenAPI URL or a docs page, in the same way that handyman can ingest those resources.
 An agentic pipeline then designs the tool surface,
 generates the server against Arcade's SDK, and runs it through a tiered
@@ -297,10 +297,4 @@ every user's weekend project:
 The rationale is catalog economics: the long tail of APIs is where agents
 need tools most, hand-authoring toolkits scales with engineering headcount,
 and generation gated by evals scales with compute while keeping the
-catalog's quality bar visible instead of assumed. I would also contribute
-two small findings from this build upstream regardless: the `arcade_evals`
-stdio listing-cache staleness hazard for regenerating pipelines (real,
-reproducible; the fix is an invalidation signal in the cache key), and the
-ergonomics of arcade-mcp masking unhandled exceptions — surfacing typed
-tool errors by default would improve every generated and hand-written
-server alike.
+catalog's quality bar visible instead of assumed. 
