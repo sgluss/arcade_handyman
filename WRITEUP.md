@@ -137,8 +137,12 @@ courtesy `User-Agent`. The design stage maps them differently on purpose.
 Real credentials become Arcade-native `requires_secrets` on the tool, so a
 missing secret is a clean per-call error in Arcade's own mechanism.
 Identification-only values become environment variables with sensible
-defaults, so a fresh clone runs with zero configuration. Both flow through
-the same generic classifier — nothing in the pipeline special-cases NWS.
+defaults, so a fresh clone runs with zero configuration. In the committed
+regeneration the design carried only the User-Agent scheme — NWS never
+actually enforces its declared `API-Key`, and every call in the evidence ran
+keyless — so the required-secret path is proven by the generator's fixture
+tests instead of a live target. Both flow through the same generic
+classifier — nothing in the pipeline special-cases NWS.
 OAuth schemes are recorded in the IR but deliberately not generated;
 Arcade's managed `requires_auth` is the right home for that, and wiring
 OAuth blind from a spec is a product decision, not codegen.
@@ -150,12 +154,12 @@ design decisions came from three failures. The long version is in the build
 log; the short version:
 
 **The gate caught bad evals before bad tools.** The first full NWS run
-failed 3 of 12 cases — all three were gate bugs, not server bugs: the
-string-vs-float typing mismatch above, examiner cases that implied two tool
-calls while expecting one (the examiner now has a one-intent-per-message
-rule), and an upstream caching bug in `arcade_evals` where stdio tool
-listings are memoized by command line, silently scoring every revision
-attempt against the first attempt's server. The gate now clears that cache
+failed 3 of 12 cases — gate bugs, not server bugs — and diagnosing them
+produced three permanent fixes: the string-vs-float typing mismatch above,
+examiner cases that implied two tool calls while expecting one (the examiner
+now has a one-intent-per-message rule), and an upstream caching bug in
+`arcade_evals` where stdio tool listings are memoized by command line,
+silently scoring every revision attempt against the first attempt's server. The gate now clears that cache
 per run; the bug is worth an upstream issue, and I'd file it.
 
 **Then the gate passed 14/14 — and the demo still crashed.** The design had
@@ -206,12 +210,14 @@ through the anthropic SDK's Bedrock client, which the framework accepts
 unchanged because it only duck-types the Messages API.
 
 **The gate's consumer model is deliberately weak.** Eval cases are answered
-by a haiku-tier model by default (env-overridable, keyed to the pipeline's
-provider). This is cheaper per case and a *stricter* test of the thing the
-gate actually measures: descriptions that steer a small model correctly
-steer anything. The committed NWS suite replays 14/14 on haiku. Judgment
-stages (design, examiner) stay on the stronger pipeline model. A full
-regeneration of a target costs roughly $1.
+by a haiku-tier model by default (env-overridable; keyed to the pipeline's
+provider, where a weak-tier mapping exists). This is cheaper per case and a
+*stricter* test of the thing the gate actually measures: descriptions that
+steer a small model correctly steer anything. The committed NWS evidence was
+scored by that haiku consumer — 12/12 in `generated/weather_gov/evals.json` —
+and the superseded 14-case suite had also replayed clean when the gate first
+dropped to haiku. Judgment stages (design, examiner) stay on the stronger
+pipeline model. A full regeneration of a target costs roughly $1.
 
 **Cost attribution versus caching — a measured tradeoff.** This project
 runs Bedrock through Project-tagged application inference profiles, which
@@ -237,6 +243,7 @@ are deliberately untraced — they must stay zero-dependency subprocesses.
 |---|---|---|
 | OAuth generation | Wiring OAuth blind from a spec is a product decision; declared schemes are recorded in the IR and skipped | Arcade's managed `requires_auth` |
 | Pagination / streaming | Real work, orthogonal to the thesis; today's tools return one pruned response | A later `CallStep` capability |
+| Request bodies | Ingest records write endpoints without their body schemas; both demo APIs are read-only, so no committed tool is affected | Body params in the ingest contract, then codegen |
 | Fan-out chain steps | "Top N stories with details" wants a `foreach` step; considered, rejected for scope. The design emits primitives and the demo agent composed two dozen parallel `get_item` calls itself — acceptable, but it spends agent turns on plumbing | The chain IR, eventually |
 | Chains beyond two calls | Two covers the resolve-then-fetch pattern that dominates real APIs; more invites planning inside codegen | Unclear it's ever needed |
 | Execution-*correctness* evals | Smoke proves wiring, not payload truth; judging answer quality needs a judged workflow eval | The feature below, tier 4 |

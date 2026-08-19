@@ -42,7 +42,7 @@ Prerequisites: [uv](https://docs.astral.sh/uv/), plus **one** LLM credential
 of your choice — AWS/Bedrock, Anthropic, or OpenAI (see below).
 
 ```bash
-git clone <this repo> && cd arcade_takehome
+git clone https://github.com/sgluss/arcade_handyman.git && cd arcade_handyman
 uv sync
 cp .env.example .env        # pick a model line, add your credential
 ```
@@ -76,9 +76,10 @@ smoke calls, eval scores), so a `generate` run is watchable end-to-end.
 The generated artifacts for both demo targets are committed, so you can
 review everything without a key:
 
-- `uv run pytest tests/ -q` — the full deterministic machinery, including an
-  end-to-end execution-smoke run against a local stand-in API (no network,
-  no LLM).
+- `uv run pytest tests/ -q` — the deterministic machinery from codegen
+  through the verify gate, including an end-to-end execution-smoke run
+  against a local stand-in API (no network, no LLM). Spec ingest is instead
+  exercised live by every `generate` run.
 - Read `generated/weather_gov/` and `generated/hackernews/` — the servers,
   their design decisions, and the eval evidence they shipped with.
 - Run a generated server directly:
@@ -90,12 +91,13 @@ review everything without a key:
 ```
 generated/weather_gov/
 ├── server.py    the arcade-mcp server: one tool per planned capability,
-│                chains hidden behind single tools, typed error taxonomy
+│                chains hidden behind single tools, typed error taxonomy,
+│                and the regeneration command in its header
 ├── plan.json    the design stage's full decision — including every endpoint
 │                it rejected, with reasons
 ├── evals.json   the gate's evidence: examiner cases, execution-smoke
 │                outcomes, and tool-selection scores against the live server
-└── README.md    provenance, tool table, secrets table, regeneration command
+└── README.md    provenance, tool table, secrets table, rejected endpoints
 ```
 
 `plan.json` and `evals.json` are the honesty artifacts: what was decided and
@@ -125,8 +127,10 @@ Every LLM stage follows `HANDYMAN_MODEL` — a
 [pydantic-ai model string](https://ai.pydantic.dev/models/), so
 `bedrock:...`, `anthropic:...`, and `openai:...` are drop-ins with the
 matching credential. The eval gate's consumer model defaults to haiku-tier
-on your provider: cheaper, and a *stricter* test — descriptions that steer a
-small model steer anything.
+on Bedrock and Anthropic (OpenAI has no obvious weak-tier mapping, so it
+reuses the pipeline model unless `HANDYMAN_EVAL_MODEL` says otherwise):
+cheaper, and a *stricter* test — descriptions that steer a small model steer
+anything.
 
 A full regeneration of a target costs roughly $1 on claude-sonnet-5
 (design + examiner), with the gate on haiku. Prompt caching is wired at

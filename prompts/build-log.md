@@ -148,7 +148,8 @@ Decisions and results:
 2. **Bedrock prompt caching on the multi-turn surfaces.** The demo agent
    caches its tool schema, system prompt, and growing history (the fan-out
    demo now reports ~half its input tokens as cache reads, billed at ~10%
-   of fresh input); the eval gate marks its per-case repeated tool schema
+   of fresh input — later measured inert under the application-profile
+   ARNs, see Session 4); the eval gate marks its per-case repeated tool schema
    cacheable via a small client adapter. Single-shot stages (design,
    examiner) get nothing from caching and correctly skip it.
 3. **Reproducibility note:** Bedrock's Converse and InvokeModel APIs

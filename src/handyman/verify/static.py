@@ -43,8 +43,9 @@ def static_check(server_path: Path) -> list[str]:
 def boot_check(server_path: Path) -> list[str]:
     """Boot the server over stdio and return the tool names it actually serves.
 
-    Raises with the server's stderr context if it cannot start — a boot
-    failure is a generation bug, never something to paper over.
+    Raises if the server cannot start (its stderr streams through to the
+    console) — a boot failure is a generation bug, never something to paper
+    over.
     """
 
     async def _list() -> list[str]:

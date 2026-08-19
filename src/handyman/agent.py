@@ -55,9 +55,11 @@ async def run_agent(server_path: Path, task: str) -> str:
 
 def _cache_settings() -> ModelSettings | None:
     """Prompt caching for the agent loop, which re-sends the tool schema, the
-    system prompt, and the whole conversation so far on every turn — cache
-    reads bill at ~10% of fresh input, roughly a 5x saving on fan-out-heavy
-    tasks. Bedrock-only; other providers run with their defaults."""
+    system prompt, and the whole conversation so far on every turn. Engages on
+    caching-capable Bedrock model ids (cache reads bill at ~10% of fresh
+    input); measured inert through application-inference-profile ARNs, so the
+    committed .env trades caching for cost attribution — see the WRITEUP.
+    Bedrock-only; other providers run with their defaults."""
     if not model_name().startswith("bedrock:"):
         return None
     return BedrockModelSettings(

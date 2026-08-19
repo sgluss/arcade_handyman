@@ -40,7 +40,7 @@ from handyman.verify import (
 
 
 def main() -> None:
-    load_dotenv()  # model + AWS/Bedrock config, LOGFIRE_TOKEN, NWS_USER_AGENT, HOME_LAT/LON
+    load_dotenv()  # model + AWS/Bedrock config, LOGFIRE_TOKEN, server secrets, HOME_LAT/LON
     _configure_tracing()
     args = _parse_args()
     if args.command == "generate":
